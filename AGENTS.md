@@ -4,9 +4,9 @@ This document is the shared operating context for every team member and every AI
 
 ## 1. Branch Policy
 
-1.1. The `main` branch holds three artefacts: this document, the exploratory data analysis under `eda/` and the agreed input contract. No other work is committed to `main`.
+1.1. The `main` branch is the shared reference for the team. It holds this document, the input contract, the shared library `pathsnap/`, the model harness and templates under `models/`, the fixed folds file, the dependency list and the exploratory data analysis entry script. No experiment results or individual model work are committed to `main`.
 
-1.2. The `anishwar` branch is the working branch. All modelling code, experiments, results and report sources are committed there. The team does not merge `anishwar` into `main`.
+1.2. The `anishwar` branch is the working branch. All modelling code, experiments, results and report sources are committed there. Team members read setup material from `main` and commit their work to `anishwar`. The team does not merge `anishwar` into `main`.
 
 1.3. The team may create a separate repository for the final presentation. Until that decision is made, the history on `anishwar` remains unaltered. Contributors do not rewrite history or force-push.
 
