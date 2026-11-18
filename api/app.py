@@ -19,6 +19,8 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +33,13 @@ MODEL_PATH = Path(os.environ.get("PATHSNAP_MODEL", ROOT / "artifacts" / "models"
 
 app = FastAPI(title="PathSnap", version="1.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
+# The evaluator page is also served here, so a browser can open http://<laptop 1>:8000/ directly.
+app.mount("/ui", StaticFiles(directory=ROOT / "ui", html=True), name="ui")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/ui/")
 
 _model = None
 _cache: dict[str, dict] = {}

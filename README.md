@@ -86,7 +86,7 @@ Laptop 1 builds the deployment model and serves the evaluation trips. `train_fin
 PATHSNAP_PARTITION=student_test .venv/bin/uvicorn api.app:app --host 0.0.0.0 --port 8000
 ```
 
-The service exposes `GET /health`, `GET /trips`, `GET /trips/{id}/track` and `POST /predict`. Laptop 2 serves the interface and connects to the address of laptop 1.
+The service exposes `GET /health`, `GET /trips`, `GET /trips/{id}/track` and `POST /predict`. It also serves the interface at its root address, so a browser on laptop 2 can open `http://<laptop 1 address>:8000/` directly. The interface can instead be served from laptop 2 and pointed at laptop 1.
 
 ```bash
 python3 -m http.server 8080 -d ui                # then open http://localhost:8080

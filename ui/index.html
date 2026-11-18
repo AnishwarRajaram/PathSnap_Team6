@@ -87,7 +87,9 @@ legend.onAdd = () => {
 };
 legend.addTo(map);
 
-try { const s = localStorage.getItem("pathsnap.server"); if (s) $("server").value = s; } catch (e) {}
+// Served by the API itself: talk to the same address. Served separately: use the saved address.
+if (location.pathname.startsWith("/ui")) { $("server").value = location.origin; }
+else { try { const s = localStorage.getItem("pathsnap.server"); if (s) $("server").value = s; } catch (e) {} }
 
 function status(msg, cls = "") { $("status").textContent = msg; $("status").className = cls; }
 
@@ -152,6 +154,7 @@ async function show(id) {
 }
 
 $("connect").onclick = connect;
+if (location.pathname.startsWith("/ui")) connect();
 $("server").addEventListener("keydown", (e) => { if (e.key === "Enter") connect(); });
 </script>
 </body>
