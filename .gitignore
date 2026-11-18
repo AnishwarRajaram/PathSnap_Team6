@@ -33,3 +33,6 @@ venv/
 
 # Generated labels and features (derived data)
 artifacts/
+
+# Folium HTML maps embed raw coordinates; regenerate with eda/07_maps.py
+results/maps/
