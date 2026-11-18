@@ -78,7 +78,7 @@ PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to 
 
 5.7. The repository carries no licence file by team decision.
 
-5.8. Commit messages carry no AI attribution lines.
+5.8. Commits made with AI assistance carry a `Co-Authored-By` line that names the AI assistant. This disclosure applies from the candidate-generation commit onward. Earlier commits are not rewritten. The README and the report carry no separate AI-use section.
 
 5.9. Each contributor must be able to explain any code they commit.
 
