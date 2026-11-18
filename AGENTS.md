@@ -40,27 +40,49 @@ PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to 
 
 3.4. The reference route is not verified ground truth. The report states its limitations.
 
-## 4. Mandatory Rules
+3.5. The upstream source is the student folder issued by the organisers. It contains the guideline PDFs and the raw trip data. It stays local and is excluded by `.gitignore`. It is never committed.
 
-4.1. Raw data is never committed. Code reads the data root from the `PATHSNAP_DATA` environment variable. Code never contains a local path.
+3.6. Each trip carries its own road network. The 90 issued trips use 90 distinct node files. Trip centres lie up to about 10,000 km apart. No shared global map exists. Within a trip the nodes and arcs describe the area that the track crosses.
 
-4.2. Derived data, credentials and API keys are never committed.
+3.7. Nodes trace road geometry and are not limited to junctions. The median arc length is about 25 m. About 93% of arcs have a reverse twin with identical geometry, so direction cannot be inferred from position alone.
 
-4.3. AI agents report aggregates only from the dataset. Row-level values do not appear in logs, chat transcripts or commits.
+## 4. Task Framing
 
-4.4. Evaluator-testing data does not influence any modelling decision. Preprocessing is fitted on training data only. Decoder parameters are tuned on training and student-testing data only.
+4.1. The system input for one trip is the track, the nodes and the arcs. The system output is one arc identifier per GPS observation. The ordered arcs form the predicted route.
 
-4.5. Predictions are never hardcoded. Ground-truth labels remain on the server and never reach the model or the user interface.
+4.2. The reference route is used differently in each partition.
 
-4.6. Every metric, graph and map in the report is produced by code in this repository.
+| Partition | Use of the reference route |
+|---|---|
+| Training | Source of supervision labels. The team aligns each observation to a route arc. |
+| Student-testing | Hidden from the model. Used only to score and compare models. |
+| Evaluator-testing | Held on the server only. Used only to score the final prediction. |
 
-4.7. The repository carries no licence file by team decision.
+4.3. The reference route lists arcs but does not assign observations to arcs. The team builds the observation-to-arc alignment that produces training labels.
 
-4.8. Commit messages carry no AI attribution lines.
+4.4. Learned components use place-independent features such as distance to arc, heading difference and speed. HMM transitions are computed from each trip's own road graph. No component learns arc-specific or place-specific parameters.
 
-4.9. Each contributor must be able to explain any code they commit.
+## 5. Mandatory Rules
 
-## 5. Repository Layout
+5.1. Raw data is never committed. Code reads the data root from the `PATHSNAP_DATA` environment variable. Code never contains a local path.
+
+5.2. Derived data, credentials and API keys are never committed.
+
+5.3. AI agents report aggregates only from the dataset. Row-level values do not appear in logs, chat transcripts or commits.
+
+5.4. Evaluator-testing data does not influence any modelling decision. Preprocessing is fitted on training data only. Decoder parameters are tuned on training and student-testing data only.
+
+5.5. Predictions are never hardcoded. Ground-truth labels remain on the server and never reach the model or the user interface.
+
+5.6. Every metric, graph and map in the report is produced by code in this repository.
+
+5.7. The repository carries no licence file by team decision.
+
+5.8. Commit messages carry no AI attribution lines.
+
+5.9. Each contributor must be able to explain any code they commit.
+
+## 6. Repository Layout
 
 | Directory | Contents |
 |---|---|
@@ -74,11 +96,11 @@ PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to 
 | `results/` | Small CSV files, logs and plots |
 | `report/` | Report sources |
 
-## 6. Input Contract
+## 7. Input Contract
 
 The team defines the input contract after exploratory analysis, dimensionality analysis and feature selection are complete. The contract specifies the candidate generation rule, the feature schema with units and types, and the request and response formats of the API. The agreed contract is committed to `main` alongside this document.
 
-## 7. Status Record
+## 8. Status Record
 
 | Item | Status |
 |---|---|
