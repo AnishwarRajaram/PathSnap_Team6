@@ -1,0 +1,158 @@
+<!doctype html>
+<!--
+PathSnap evaluator interface (laptop 2). Contract v1.1, section 8.
+Serve with: python3 -m http.server 8080 -d ui   then open http://localhost:8080
+Enter the address of laptop 1 (for example http://192.168.1.20:8000) and press Connect.
+Map tiles need internet access; the route and points draw without them.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PathSnap Evaluator</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+  :root { --bg:#f6f7f9; --panel:#fff; --ink:#1b1f24; --muted:#5f6b7a; --line:#dde2e8;
+          --accent:#1f4fd1; --route:#d62728; --gps:#7a8594; --ok:#1a7f37; --bad:#b42318; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.4 system-ui, -apple-system, Segoe UI, sans-serif; color:var(--ink); background:var(--bg);
+         display:grid; grid-template-columns: 320px 1fr; height:100vh; }
+  aside { background:var(--panel); border-right:1px solid var(--line); padding:16px; overflow:auto; }
+  h1 { font-size:18px; margin:0 0 4px; } .sub { color:var(--muted); margin:0 0 16px; }
+  label { font-size:12px; color:var(--muted); display:block; margin-bottom:4px; }
+  .row { display:flex; gap:8px; margin-bottom:12px; }
+  input { flex:1; padding:7px 8px; border:1px solid var(--line); border-radius:6px; font:inherit; min-width:0; }
+  button { padding:7px 12px; border:0; border-radius:6px; background:var(--accent); color:#fff; font:inherit; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  #status { font-size:12px; margin-bottom:12px; min-height:18px; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+  #trips { list-style:none; padding:0; margin:0 0 16px; border:1px solid var(--line); border-radius:6px; }
+  #trips li { padding:8px 10px; border-bottom:1px solid var(--line); cursor:pointer; display:flex; justify-content:space-between; }
+  #trips li:last-child { border-bottom:0; }
+  #trips li:hover { background:#eef2fb; } #trips li.sel { background:#dfe7fb; font-weight:600; }
+  #trips .score { color:var(--muted); font-variant-numeric:tabular-nums; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; margin-bottom:12px; }
+  td { padding:4px 0; border-bottom:1px solid var(--line); } td:last-child { text-align:right; }
+  h2 { font-size:13px; margin:16px 0 6px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  #map { height:100vh; }
+  .legend { background:#fff; padding:6px 8px; border-radius:6px; font-size:12px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+  .legend i { display:inline-block; width:14px; height:3px; margin-right:6px; vertical-align:middle; }
+  @media (max-width: 800px) { body { grid-template-columns:1fr; grid-template-rows:auto 60vh; height:auto; } #map { height:60vh; } }
+</style>
+</head>
+<body>
+<aside>
+  <h1>PathSnap</h1>
+  <p class="sub">Route reconstruction from GPS: classifier + HMM</p>
+
+  <label for="server">Server (laptop 1)</label>
+  <div class="row"><input id="server" value="http://localhost:8000"><button id="connect">Connect</button></div>
+  <div id="status">Not connected.</div>
+
+  <h2>Trips</h2>
+  <ul id="trips"></ul>
+
+  <h2>Score</h2>
+  <table id="metrics"><tr><td colspan="2" style="color:var(--muted)">Select a trip.</td></tr></table>
+
+  <h2>Timing (ms)</h2>
+  <table id="timing"></table>
+</aside>
+<div id="map"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const LABELS = {
+  top1_accuracy: "Top-1 accuracy", macro_f1: "Macro F1", route_f1: "Route F1",
+  route_continuity: "Route continuity", filled_route_continuity: "Filled continuity",
+  candidate_miss_rate: "Candidate miss rate", n_obs_scored: "Observations scored",
+};
+let base = "";
+const scores = {};
+
+const map = L.map("map").setView([20, 0], 2);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+const layers = L.layerGroup().addTo(map);
+const legend = L.control({ position: "topright" });
+legend.onAdd = () => {
+  const d = L.DomUtil.create("div", "legend");
+  d.innerHTML = `<div><i style="background:var(--gps)"></i>GPS observations</div>
+                 <div><i style="background:var(--accent)"></i>Matched points</div>
+                 <div><i style="background:var(--route);height:4px"></i>Predicted route</div>`;
+  return d;
+};
+legend.addTo(map);
+
+try { const s = localStorage.getItem("pathsnap.server"); if (s) $("server").value = s; } catch (e) {}
+
+function status(msg, cls = "") { $("status").textContent = msg; $("status").className = cls; }
+
+async function api(path, body) {
+  const r = await fetch(base + path, body ? {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  } : {});
+  if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
+  return r.json();
+}
+
+async function connect() {
+  base = $("server").value.trim().replace(/\/+$/, "");
+  try { localStorage.setItem("pathsnap.server", base); } catch (e) {}
+  status("Connecting...");
+  try {
+    const h = await api("/health");
+    const { trips } = await api("/trips");
+    status(`Connected: ${h.n_trips} trips in "${h.partition}".`, "ok");
+    const ul = $("trips"); ul.innerHTML = "";
+    trips.forEach((id) => {
+      const li = document.createElement("li");
+      li.dataset.id = id;
+      li.innerHTML = `<span>${id}</span><span class="score">${scores[id] ?? ""}</span>`;
+      li.onclick = () => show(id);
+      ul.appendChild(li);
+    });
+  } catch (e) { status(`Connection failed: ${e.message}`, "bad"); }
+}
+
+function fmt(k, v) {
+  if (v === null || v === undefined) return "n/a";
+  return k === "n_obs_scored" ? v.toLocaleString() : (k === "candidate_miss_rate" ? (100 * v).toFixed(2) + "%" : (100 * v).toFixed(1) + "%");
+}
+
+async function show(id) {
+  document.querySelectorAll("#trips li").forEach((li) => li.classList.toggle("sel", li.dataset.id === id));
+  status(`Predicting ${id}...`);
+  try {
+    const [trk, res] = await Promise.all([api(`/trips/${encodeURIComponent(id)}/track`), api("/predict", { trip_id: id })]);
+    layers.clearLayers();
+    trk.points.forEach(([lon, lat]) =>
+      L.circleMarker([lat, lon], { radius: 2, color: "#7a8594", weight: 0, fillOpacity: .6 }).addTo(layers));
+    res.matched.filter((m) => m.lat !== null).forEach((m) =>
+      L.circleMarker([m.lat, m.lon], { radius: 2, color: "#1f4fd1", weight: 0, fillOpacity: .9 }).addTo(layers));
+    const line = L.polyline(res.route_geojson.coordinates.map(([lon, lat]) => [lat, lon]),
+      { color: "#d62728", weight: 4, opacity: .8 }).addTo(layers);
+    map.fitBounds(line.getBounds(), { padding: [20, 20] });
+
+    const m = res.metrics;
+    $("metrics").innerHTML = m
+      ? Object.keys(LABELS).map((k) => `<tr><td>${LABELS[k]}</td><td>${fmt(k, m[k])}</td></tr>`).join("")
+      : `<tr><td colspan="2">No reference route on the server for this trip.</td></tr>`;
+    $("timing").innerHTML = Object.entries(res.timing_ms).map(([k, v]) => `<tr><td>${k}</td><td>${v.toFixed(0)}</td></tr>`).join("")
+      + `<tr><td>route arcs</td><td>${res.route_arcs.length}</td></tr>`;
+    if (m) {
+      scores[id] = fmt("top1_accuracy", m.top1_accuracy);
+      document.querySelector(`#trips li[data-id="${CSS.escape(id)}"] .score`).textContent = scores[id];
+    }
+    status(`${id}: ${res.matched.length} observations${res.cached ? " (cached)" : ""}.`, "ok");
+  } catch (e) { status(`Prediction failed: ${e.message}`, "bad"); }
+}
+
+$("connect").onclick = connect;
+$("server").addEventListener("keydown", (e) => { if (e.key === "Enter") connect(); });
+</script>
+</body>
+</html>

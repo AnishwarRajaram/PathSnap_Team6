@@ -64,7 +64,17 @@ The script runs EDA steps 1 to 6, trains every model through the harness, applie
 
 ### 4.3. API and Interface
 
-Pending implementation. Laptop 1 will run the FastAPI service with `GET /trips` and `POST /predict`. Laptop 2 will run the evaluator interface. The request and response formats are fixed in `docs/INPUT_CONTRACT.md`.
+```bash
+.venv/bin/python api/train_final.py              # deployment model, about 1 min
+.venv/bin/python api/check_api.py                # parity with hmm/final.py and endpoint checks
+PATHSNAP_PARTITION=student_test .venv/bin/uvicorn api.app:app --host 0.0.0.0 --port 8000
+```
+
+Laptop 1 runs the service with `GET /health`, `GET /trips`, `GET /trips/{id}/track` and `POST /predict`. Laptop 2 runs the evaluator interface (pending). The request and response formats are fixed in `docs/INPUT_CONTRACT.md`.
+
+```bash
+.venv/bin/python tuning/tune_hgb.py --trials 60  # Bayesian optimisation of HGB, about 80 min
+```
 
 ## 5. Method Summary
 
