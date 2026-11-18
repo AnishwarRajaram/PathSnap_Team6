@@ -106,7 +106,7 @@ async function connect() {
   try {
     const h = await api("/health");
     const { trips } = await api("/trips");
-    status(`Connected: ${h.n_trips} trips in "${h.partition}".`, "ok");
+    status(`Connected: ${h.n_trips} trips in "${h.partition}", model ${h.model.name ?? "unknown"}.`, "ok");
     const ul = $("trips"); ul.innerHTML = "";
     trips.forEach((id) => {
       const li = document.createElement("li");

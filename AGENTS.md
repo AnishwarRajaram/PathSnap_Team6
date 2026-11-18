@@ -6,7 +6,7 @@ This document is the shared operating context for every team member and every AI
 
 1.1. The `main` branch is the integration branch. It holds this document, the input contract, the shared library `pathsnap/`, the model harness and templates under `models/`, the fixed folds file, the dependency list, the exploratory data analysis scripts under `eda/`, the reproduction script `scripts/reproduce_viva1.sh` and the merged results of every team member.
 
-1.2. Each team member works on a personal branch cut from the latest `main`. The branches are `anishwar`, `anusha`, `bharath` and `bhuvi`. Each model is developed on its owner's branch.
+1.2. Each team member works on a personal branch cut from the latest `main`. The branches are `anishwar`, `anusha`, `bharath` and `bhuvi`. A member may open an additional branch for one model, such as `bhuvi-rf`, or commit a finished model to `anishwar` after review. Only the model file, its summary results and its report are carried into `main`. Exploratory work on personal branches stays there.
 
 1.3. Finished work is merged back into `main` after review. A merge must not change shared files such as the harness, the folds file, the feature list or `requirements.txt` without team agreement. A merge must pass the checks in `AGENTS.md` section 5.
 
@@ -90,15 +90,16 @@ PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to 
 
 | Directory | Contents |
 |---|---|
-| `eda/` | Dataset exploration scripts and Folium maps |
-| `features/` | Candidate generation and feature engineering |
-| `models/` | Training script for each model and the comparison harness |
-| `tuning/` | Bayesian optimisation configuration and trial logs |
-| `hmm/` | HMM and Viterbi decoder |
-| `api/` | FastAPI backend |
+| `pathsnap/` | Shared library: data loading and projection, labels, candidates, features, HMM decoder, end-to-end prediction |
+| `eda/` | Exploratory analysis scripts, steps 01 to 08 |
+| `models/` | Evaluation harness, one module per model, data preparation and model comparison |
+| `tuning/` | Bayesian optimisation scripts |
+| `hmm/` | Decoder evaluation, tuning and figures |
+| `api/` | FastAPI service, deployment model training and service check |
 | `ui/` | Evaluator interface |
-| `results/` | Small CSV files, logs and plots |
-| `report/` | Report sources |
+| `scripts/` | Reproduction scripts |
+| `results/` | Small CSV files, JSON summaries and figures |
+| `docs/` | Input contract, model report template and model reports |
 
 ## 7. Input Contract
 
@@ -116,5 +117,9 @@ PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to 
 | Data received | Training 80 trips. Student-testing 10 trips. |
 | Exploratory analysis | Complete |
 | Input contract | Version 1.1 approved |
-| Model comparison | Two of five models complete. Three assigned to teammates. |
-| HMM and Viterbi | Complete. Decoder tuned on training out-of-fold predictions. |
+| Model comparison | Four of five models complete: Logistic Regression, HistGradientBoosting, Random Forest and kNN. The multilayer perceptron is outstanding. |
+| Model selection | Random Forest leads under the selection rule. Final selection follows the fifth model. |
+| Bayesian optimisation | Script and HistGradientBoosting study complete. The selected model is tuned after final selection. |
+| HMM and Viterbi | Complete for HistGradientBoosting. Retuned on the selected model's out-of-fold predictions after final selection. |
+| API and interface | Complete and verified on one machine. Two-laptop rehearsal outstanding. |
+| Report | Outstanding |

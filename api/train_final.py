@@ -1,52 +1,72 @@
-"""Fit the deployment model and bundle it with the tuned decoder parameters.
+"""Fit the deployment model and bundle it with its tuned decoder parameters.
 
-The classifier is fitted on every reliable training row (80 trips). Student-test
-trips are not used, so they remain a clean check of the deployed pipeline.
-Default hyperparameters are those of models/hgb.py. With --tuned, the best
-parameters in results/tuning/hgb_best.json are used instead.
-Decoder parameters come from results/hmm/decoder_hgb.json.
+The model is any module in models/ that follows the harness interface. By default
+the model selected in results/models/comparison.csv is used. The classifier is
+fitted on every reliable training row (80 trips), or on the module's
+MAX_TRAIN_ROWS sample. Student-test trips are not used, so they remain a clean
+check of the deployed pipeline.
+
+Hyperparameters come from the module CONFIG. With --tuned they come from
+results/tuning/<model>_best.json. Decoder parameters come from
+results/hmm/decoder_<model>.json, which hmm/tune.py writes.
 
 Writes artifacts/models/final.joblib (gitignored).
-Usage: PATHSNAP_DATA=<data root> python api/train_final.py [--tuned]
+Usage: PATHSNAP_DATA=<data root> python api/train_final.py [--model rf] [--tuned]
 """
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import sys
 import time
 from pathlib import Path
 
 import joblib
-from sklearn.ensemble import HistGradientBoostingClassifier
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from models import hgb  # noqa: E402
-from models.harness import load_rows  # noqa: E402
+from models.harness import load_rows, subsample_obs  # noqa: E402
 from pathsnap.features import SELECTED  # noqa: E402
 
 OUT = ROOT / "artifacts" / "models" / "final.joblib"
 
 
+def selected_model() -> str:
+    c = pd.read_csv(ROOT / "results" / "models" / "comparison.csv")
+    return str(c.loc[c.selected.astype(bool), "model"].iloc[0])
+
+
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--tuned", action="store_true"); a = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", default=None, help="module name in models/; default: selected model")
+    ap.add_argument("--tuned", action="store_true")
+    a = ap.parse_args()
+    name = a.model or selected_model()
+    module = importlib.import_module(f"models.{name}")
+
+    cfg, source = dict(module.CONFIG), f"models/{name}.py"
     if a.tuned:
-        cfg = json.loads((ROOT / "results" / "tuning" / "hgb_best.json").read_text())["best_params"]
-        source = "results/tuning/hgb_best.json"
-    else:
-        cfg, source = dict(hgb.CONFIG), "models/hgb.py"
-    dec = json.loads((ROOT / "results" / "hmm" / "decoder_hgb.json").read_text())
+        best = ROOT / "results" / "tuning" / f"{name}_best.json"
+        cfg |= json.loads(best.read_text())["best_params"]
+        source = str(best.relative_to(ROOT))
+    dec_path = ROOT / "results" / "hmm" / f"decoder_{name}.json"
+    if not dec_path.exists():
+        raise SystemExit(f"{dec_path.relative_to(ROOT)} missing. Run: python hmm/tune.py --model {name}")
+    dec = json.loads(dec_path.read_text())
     decoder = {k: dec[k] for k in ("alpha", "beta", "jump_penalty")}
 
-    train = load_rows("train")
+    train = subsample_obs(load_rows("train"), getattr(module, "MAX_TRAIN_ROWS", None))
     t0 = time.perf_counter()
-    est = HistGradientBoostingClassifier(random_state=0, **cfg).fit(train[SELECTED].to_numpy(), train.y.to_numpy())
+    est = module.build(cfg)
+    est.fit(train[SELECTED].to_numpy(), train.y.to_numpy())
     fit_s = time.perf_counter() - t0
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump({"estimator": est, "features": SELECTED, "config": cfg, "config_source": source,
-                 "decoder": decoder, "trained_on": "train (80 trips, reliable rows)"}, OUT)
-    print(f"fitted on {len(train):,} rows in {fit_s:.1f}s with {source}; decoder {decoder}")
+    joblib.dump({"estimator": est, "features": SELECTED, "model": name, "config": cfg,
+                 "config_source": source, "decoder": decoder,
+                 "trained_on": f"train (80 trips, {len(train):,} reliable rows)"}, OUT)
+    print(f"{name}: fitted on {len(train):,} rows in {fit_s:.1f}s with {source}; decoder {decoder}")
     print(f"wrote {OUT.relative_to(ROOT)}")
 
 

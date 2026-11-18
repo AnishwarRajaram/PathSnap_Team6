@@ -2,7 +2,7 @@
 
 1. Parity: decodes every student-test trip on reliable observations only, the
    setting of hmm/final.py, and compares pooled Top-1 and continuity with
-   results/hmm/final_hgb_student_test_summary.csv.
+   results/hmm/final_<model>_student_test_summary.csv.
 2. API: calls GET /health, GET /trips, POST /predict for every trip through the
    FastAPI test client. Checks the response fields of contract section 8.2, that
    no reference route is returned, that unknown ids are rejected, and reports
@@ -38,7 +38,7 @@ def pooled(counts: list[dict]) -> dict:
 def main():
     ok = True
     m = load_model(MODEL_PATH)
-    print(f"model: {m.meta.get('config_source')}, decoder {m.meta.get('decoder')}")
+    print(f"model: {m.meta['model']} from {m.meta.get('config_source')}, decoder {m.meta.get('decoder')}")
 
     counts = []
     for tid in list_trips(PARTITION):
@@ -47,7 +47,7 @@ def main():
         pred = predict_trip(trip, m, keep_obs=dist <= RELIABLE_M)
         counts.append(score_trip(trip, pred)["_counts"])
     got = pooled(counts)
-    ref = pd.read_csv(ROOT / "results" / "hmm" / "final_hgb_student_test_summary.csv", index_col=0).loc["hmm"]
+    ref = pd.read_csv(ROOT / "results" / "hmm" / f"final_{m.meta['model']}_student_test_summary.csv", index_col=0).loc["hmm"]
     print("== parity with hmm/final.py (reliable observations)")
     for k in got:
         good = abs(got[k] - ref[k]) < TOL

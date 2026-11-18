@@ -1,6 +1,6 @@
 """Figures and Folium map for the HMM section of the report.
 
-Reads results/hmm/final_hgb_<split>_{summary,per_trip}.csv written by hmm/run_hmm.py.
+Reads results/hmm/final_<model>_<split>_{summary,per_trip}.csv written by hmm/run_hmm.py.
 Writes results/hmm/hmm_comparison.png, results/hmm/hmm_per_trip.png and, for one
 training trip chosen by a fixed rule, a Folium map in results/maps (gitignored).
 """
@@ -24,6 +24,7 @@ from pathsnap.data import load_trip  # noqa: E402
 from pathsnap.hmm import DecoderParams, decode_trip  # noqa: E402
 
 RES = ROOT / "results" / "hmm"
+MODEL = sys.argv[sys.argv.index("--model") + 1] if "--model" in sys.argv else "hgb"
 VARIANTS = ["classifier", "distance_hmm", "hmm"]
 LABELS = {"classifier": "Classifier only", "distance_hmm": "Distance-only HMM", "hmm": "Classifier + HMM"}
 
@@ -33,13 +34,13 @@ def figures():
     for k, (metric, title) in enumerate([("top1", "Top-1 accuracy"), ("route_continuity", "Route continuity (per-point sequence)"),
                                          ("route_f1", "Route F1 (length-weighted)")]):
         for j, split in enumerate(["train_oof", "student_test"]):
-            s = pd.read_csv(RES / f"final_hgb_{split}_summary.csv", index_col=0).loc[VARIANTS]
+            s = pd.read_csv(RES / f"final_{MODEL}_{split}_summary.csv", index_col=0).loc[VARIANTS]
             ax[k].bar(np.arange(3) + (j - .5) * .38, s[metric], .38, label=split.replace("_", " "))
         ax[k].set(title=title, xticks=range(3), xticklabels=[LABELS[v] for v in VARIANTS], ylim=(.7, 1))
         ax[k].legend()
     fig.tight_layout(); fig.savefig(RES / "hmm_comparison.png", dpi=110); plt.close(fig)
 
-    r = pd.read_csv(RES / "final_hgb_train_oof_per_trip.csv", dtype={"trip_id": str})
+    r = pd.read_csv(RES / f"final_{MODEL}_train_oof_per_trip.csv", dtype={"trip_id": str})
     acc = r.assign(acc=r.top1_hits / r.n_rel.clip(lower=1)).pivot(index="trip_id", columns="variant", values="acc")
     fig, ax = plt.subplots(figsize=(6, 5.5))
     ax.scatter(acc.classifier, acc.hmm, s=18)
@@ -53,9 +54,9 @@ def folium_map(acc: pd.DataFrame):
     la = pd.read_csv(ROOT / "results" / "eda" / "label_alignment.csv", dtype={"trip_id": str})
     tid = la[la.partition == "train"].sort_values("disagree_far_pos").trip_id.iloc[-1]   # out-and-back trip
     trip = load_trip("train", tid)
-    oof = pd.read_pickle(ROOT / "artifacts" / "oof" / "hgb_train_oof.pkl")
+    oof = pd.read_pickle(ROOT / "artifacts" / "oof" / f"{MODEL}_train_oof.pkl")
     cand = oof[oof.trip_id == tid].drop(columns="trip_id")
-    prm = json.loads((RES / "decoder_hgb.json").read_text())
+    prm = json.loads((RES / f"decoder_{MODEL}.json").read_text())
     chosen, _, route = decode_trip(trip, cand, DecoderParams(alpha=prm["alpha"], beta=prm["beta"], jump_penalty=prm.get("jump_penalty")))
     best = cand.loc[cand.groupby("obs_idx").p.idxmax()]
     nodes, arcs, t = trip.nodes, trip.arcs, trip.track

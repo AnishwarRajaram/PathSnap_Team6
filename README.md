@@ -10,11 +10,13 @@ Team: [Team Name / Author Name]. Course: UE24CS352A Machine Learning.
 |---|---|---|
 | Nearest arc only, Top-1 | 55.0% | n/a |
 | Logistic Regression, macro F1 / Top-1 | 0.908 / 86.9% | 0.911 / 86.7% |
+| Distance-weighted kNN, macro F1 / Top-1 | 0.915 / 86.2% | n/a |
 | HistGradientBoosting, macro F1 / Top-1 | 0.932 / 88.0% | 0.933 / 88.5% |
+| Random Forest, macro F1 / Top-1 | 0.934 / 88.2% | 0.932 / 88.2% |
 | HistGradientBoosting with HMM, Top-1 | 92.4% | 92.8% |
 | Route continuity before and after HMM | 73.6% to 90.0% | 73.4% to 90.3% |
 
-The model comparison covers five model families. Three are in progress. Results come from `results/` and are reproducible with the commands in section 4.
+The model comparison covers five model families. Four are complete and the multilayer perceptron is outstanding. Random Forest leads under the selection rule because its macro F1 lies within one fold standard deviation of HistGradientBoosting and its log loss is lower. The HMM rows use HistGradientBoosting and are recomputed for the selected model. Results come from `results/` and are reproducible with the commands in section 4.
 
 ## 2. Repository Layout
 
@@ -24,9 +26,12 @@ The model comparison covers five model families. Three are in progress. Results 
 | `eda/` | Exploratory analysis, steps 01 to 08 |
 | `models/` | Evaluation harness, one file per model, data preparation and model comparison |
 | `hmm/` | Route reconstruction experiments, decoder tuning and figures |
+| `tuning/` | Bayesian optimisation of the selected classifier |
+| `api/` | FastAPI service, deployment model training and service check |
+| `ui/` | Evaluator interface, a static page for the second laptop |
 | `scripts/` | `reproduce_viva1.sh` reruns everything up to model selection |
 | `results/` | Metrics, CSV summaries and figures |
-| `docs/` | Input contract and model report template |
+| `docs/` | Input contract, model report template and model reports |
 | `AGENTS.md` | Team rules for people and AI agents |
 
 The `main` branch is the integration branch. Each team member develops on a personal branch cut from `main`, and finished work is merged back after review.
@@ -64,16 +69,26 @@ The script runs EDA steps 1 to 6, trains every model through the harness, applie
 
 ### 4.3. API and Interface
 
+Laptop 1 builds the deployment model and serves the evaluation trips. `train_final.py` uses the model selected in `results/models/comparison.csv` unless `--model` is given.
+
 ```bash
-.venv/bin/python api/train_final.py              # deployment model, about 1 min
+.venv/bin/python api/train_final.py              # deployment model and decoder parameters
 .venv/bin/python api/check_api.py                # parity with hmm/final.py and endpoint checks
 PATHSNAP_PARTITION=student_test .venv/bin/uvicorn api.app:app --host 0.0.0.0 --port 8000
 ```
 
-Laptop 1 runs the service with `GET /health`, `GET /trips`, `GET /trips/{id}/track` and `POST /predict`. Laptop 2 runs the evaluator interface (pending). The request and response formats are fixed in `docs/INPUT_CONTRACT.md`.
+The service exposes `GET /health`, `GET /trips`, `GET /trips/{id}/track` and `POST /predict`. Laptop 2 serves the interface and connects to the address of laptop 1.
 
 ```bash
-.venv/bin/python tuning/tune_hgb.py --trials 60  # Bayesian optimisation of HGB, about 80 min
+python3 -m http.server 8080 -d ui                # then open http://localhost:8080
+```
+
+The request and response formats are fixed in `docs/INPUT_CONTRACT.md`.
+
+### 4.4. Hyperparameter Tuning
+
+```bash
+.venv/bin/python tuning/tune_hgb.py --trials 60  # Optuna TPE on the fixed folds, about 80 min
 ```
 
 ## 5. Method Summary
@@ -84,7 +99,7 @@ Laptop 1 runs the service with `GET /health`, `GET /trips`, `GET /trips/{id}/tra
 | Labels | Order-preserving dynamic-programming alignment of observations to reference route arcs |
 | Candidates | Arcs within 50 m, at most 16, with the 4 nearest as fallback |
 | Features | 14 place-independent features on distance, position on arc, heading, motion, neighbouring observations and network shape |
-| Classifier | Binary: is this candidate the true arc. Selected by cross-validated macro F1 with trip-grouped folds |
+| Classifier | Binary: is this candidate the true arc. Selected by cross-validated macro F1 with trip-grouped folds, then tuned by Bayesian optimisation |
 | Decoder | HMM over candidate arcs. Emission from classifier probabilities. Transition from road distance against GPS distance on the directed graph. Viterbi with soft breaks |
 
 ## 6. Data Rules

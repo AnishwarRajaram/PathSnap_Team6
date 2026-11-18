@@ -58,7 +58,7 @@ def _known(trip_id: str) -> None:
 def health():
     m = model()
     return {"status": "ok", "partition": PARTITION, "n_trips": len(list_trips(PARTITION)),
-            "model": {"config_source": m.meta.get("config_source"), "trained_on": m.meta.get("trained_on"),
+            "model": {"name": m.meta.get("model"), "config_source": m.meta.get("config_source"), "trained_on": m.meta.get("trained_on"),
                       "decoder": m.meta.get("decoder")}}
 
 
