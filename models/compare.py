@@ -21,6 +21,8 @@ RESULTS = Path(__file__).resolve().parents[1] / "results" / "models"
 def main():
     rows = []
     for f in sorted(RESULTS.glob("*/summary.json")):
+        if f.parent.name.endswith("_tuned"):  # tuned refits are not candidates for selection
+            continue
         s = json.loads(f.read_text())
         m, sd, st = s["cv_mean"], s["cv_std"], s.get("student_test", {})
         rows.append({

@@ -34,5 +34,5 @@
     -0.00032828108537774625
   ],
   "folds_improved": 1,
-  "decision": "Difference within one fold standard deviation; lower log loss keeps models/rf.py. The deployed model is unchanged."
+  "decision": "Difference within one fold standard deviation. The guidelines require the selected model to be refitted with the chosen configuration, so the tuned configuration (models/rf_tuned.py) is refitted and deployed with its own decoder parameters."
 }

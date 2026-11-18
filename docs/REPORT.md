@@ -73,9 +73,24 @@ Random Forest has the highest mean macro F1. HistGradientBoosting and the multil
 
 5.3. The search converged. The five leading trials share the features-per-split rule, the leaf size and class weighting and differ by less than 0.0001. The best configuration adds `class_weight="balanced_subsample"` to the `models/rf.py` configuration. Random search with the same budget reached a lower best value.
 
-5.4. A full-size harness run of the best configuration reached CV macro F1 0.9337 against 0.9335, improved one fold of five and raised log loss from 0.0720 to 0.0732. The difference lies far inside one fold standard deviation and the lower log loss decides. The untuned Random Forest therefore remains the deployed model. The sample gain did not survive the full training set.
+5.4. A full-size harness run of the best configuration reached CV macro F1 0.9337 against 0.9335, improved one fold of five and raised log loss from 0.0720 to 0.0732. The difference lies far inside one fold standard deviation and the lower log loss decides. The sample gain did not survive the full training set as a clear improvement. The two configurations are equivalent within fold variation.
 
-5.5. A study on HistGradientBoosting with all training rows ran 50 completed trials. It raised macro F1 from 0.9316 to 0.9341 with a gain on all five folds. HistGradientBoosting was not selected, so this configuration is not deployed.
+5.5. The guidelines require the selected model to be refitted with the chosen configuration and its outputs to be used consistently by the decoder and the interface. The tuned configuration `models/rf_tuned.py` was therefore refitted on all training rows and is the deployed model. Its harness results are kept in `results/tuning/rf_tuned/` and do not enter the model comparison of section 4, whose figures are the untuned configurations.
+
+| Measure | Untuned Random Forest | Tuned Random Forest |
+|---|---|---|
+| CV macro F1 | 0.9335 ± 0.0304 | 0.9337 ± 0.0294 |
+| CV log loss | 0.0720 | 0.0732 |
+| CV Top-1 accuracy | 88.2% | 88.1% |
+| Student-test macro F1 | 0.9315 | 0.9313 |
+| Student-test Top-1 accuracy | 88.2% | 88.0% |
+| Student-test log loss | 0.0667 | 0.0680 |
+| Inference time, ms per 1,000 observations | 60.1 | 33.7 |
+| Refit time on all training rows, s | 316 | 221 |
+
+The timing figures come from separate runs and indicate scale only.
+
+5.6. A study on HistGradientBoosting with all training rows ran 50 completed trials. It raised macro F1 from 0.9316 to 0.9341 with a gain on all five folds. HistGradientBoosting was not selected, so this configuration is not deployed.
 
 ## 6. Route Reconstruction
 
@@ -86,10 +101,12 @@ The decoder was tuned on out-of-fold predictions of the classifier. Top-1 accura
 | HistGradientBoosting only | 88.4% | 73.6% | 88.5% | 73.4% | 0.926 |
 | Distance-only HMM | 89.0% | 89.7% | 89.7% | 89.4% | 0.968 |
 | HistGradientBoosting with HMM | 92.4% | 90.0% | 92.8% | 90.3% | 0.965 |
-| Random Forest only | 88.7% | 75.7% | 88.2% | 74.2% | 0.942 |
-| Random Forest with HMM | 92.4% | 89.4% | 92.2% | 89.9% | 0.976 |
+| Random Forest only, untuned | 88.7% | 75.7% | 88.2% | 74.2% | 0.942 |
+| Random Forest with HMM, untuned | 92.4% | 89.4% | 92.2% | 89.9% | 0.976 |
+| Tuned Random Forest only | 88.6% | 75.4% | 88.1% | 74.2% | 0.944 |
+| Tuned Random Forest with HMM (deployed) | 92.5% | 89.9% | 92.2% | 90.3% | 0.980 |
 
-The decoder tuned on Random Forest predictions uses β = 2 and a jump penalty of 10. Random Forest with HMM matches HistGradientBoosting with HMM on training out-of-fold Top-1, at 92.37% against 92.41%. The classifier ranking of section 4 does not carry through the decoder. The decoder removes most of the per-observation difference between the two classifiers.
+The decoder tuned on untuned Random Forest predictions uses β = 2 and a jump penalty of 10. The decoder retuned on tuned Random Forest predictions uses β = 3 and a jump penalty of 10. α is fixed at 1 in every case because the Viterbi path depends on α and β only through their product. The decoder grid covered β in {2, 3, 5, 10, 20, 50} and the jump penalty in {none, 5, 10, 25, 50} and selected the highest training out-of-fold Top-1 accuracy. With the tuned Random Forest the decoder made two training trips and no student-testing trip worse than the classifier alone. Untuned Random Forest with HMM matches HistGradientBoosting with HMM on training out-of-fold Top-1, at 92.37% against 92.41%. The classifier ranking of section 4 does not carry through the decoder. The decoder removes most of the per-observation difference between the two classifiers.
 
 The HMM raises Top-1 accuracy by about four points and continuity by about sixteen points over the classifier alone. The distance-only HMM, which ignores the classifier, reaches 89.0% Top-1, so the classifier contributes beyond geometry. With HistGradientBoosting the decoder made one training trip worse than the classifier alone and no student-testing trip worse. The drivable route reaches 99.9% filled continuity. Figures for the selected model are in `results/hmm/`.
 
@@ -99,7 +116,7 @@ The HMM raises Top-1 accuracy by about four points and continuity by about sixte
 
 7.2. Laptop 2 serves a static page that lists the trips, sends a trip identifier and draws the GPS observations, the matched points and the predicted route on a map together with the metrics.
 
-7.3. The check `api/check_api.py` decodes every student-testing trip through the deployed path and reproduces the offline Top-1 accuracy and continuity exactly. The deployed model is Random Forest with its tuned decoder.
+7.3. The check `api/check_api.py` decodes every student-testing trip through the deployed path and reproduces the offline Top-1 accuracy and continuity exactly. The deployed model is the tuned Random Forest with its own decoder parameters (α = 1, β = 3, jump penalty 10). The check reproduced Top-1 accuracy 0.922229, continuity 0.902504 and filled continuity 0.999757. The median request time was 356 ms per trip.
 
 ## 8. Limitations
 
@@ -121,6 +138,7 @@ The HMM raises Top-1 accuracy by about four points and continuity by about sixte
 | One model through the harness | `python models/run.py <model>` |
 | Comparison and selection | `python models/compare.py` |
 | Bayesian optimisation | `python tuning/tune_rf.py --sampler tpe` and `python tuning/tune_hgb.py` |
+| Refit of the tuned configuration | `python models/run.py rf_tuned` |
 | Decoder tuning and comparison | `python hmm/tune.py --model <model>` and `python hmm/final.py --model <model>` |
 | HMM figures and map | `python hmm/report.py --model <model>` |
 | Deployment model and check | `python api/train_final.py` and `python api/check_api.py` |

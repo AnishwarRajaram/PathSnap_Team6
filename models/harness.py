@@ -147,7 +147,9 @@ def evaluate(module, skip_student_test: bool = False) -> dict:
     """Run grouped CV on train, refit on all train, score student_test, write outputs."""
     name, cfg = module.NAME, dict(module.CONFIG)
     max_rows = getattr(module, "MAX_TRAIN_ROWS", None)
-    out = RESULTS / name
+    # Tuned refits of the selected model are reported with the optimisation results
+    # and stay out of the model comparison.
+    out = (ROOT / "results" / "tuning" if name.endswith("_tuned") else RESULTS) / name
     out.mkdir(parents=True, exist_ok=True)
 
     train = load_rows("train")

@@ -25,11 +25,13 @@ Random Forest is selected. HistGradientBoosting and the multilayer perceptron li
 
 | Configuration | Train OOF Top-1 | Train OOF continuity | Student-test Top-1 | Student-test continuity | Student-test route F1 |
 |---|---|---|---|---|---|
-| Random Forest only | 88.7% | 75.7% | 88.2% | 74.2% | 0.942 |
-| Random Forest with HMM | 92.4% | 89.4% | 92.2% | 89.9% | 0.976 |
+| Random Forest only, untuned | 88.7% | 75.7% | 88.2% | 74.2% | 0.942 |
+| Random Forest with HMM, untuned | 92.4% | 89.4% | 92.2% | 89.9% | 0.976 |
+| Tuned Random Forest only | 88.6% | 75.4% | 88.1% | 74.2% | 0.944 |
+| Tuned Random Forest with HMM (deployed) | 92.5% | 89.9% | 92.2% | 90.3% | 0.980 |
 | Distance-only HMM | 89.0% | 89.7% | 89.7% | 89.4% | 0.968 |
 
-Continuity is measured before path filling. The drivable route returned by the decoder reaches 99.9% continuity. The deployed service reproduces the student-testing figures exactly.
+Continuity is measured before path filling. The drivable route returned by the decoder reaches 99.98% continuity on student testing. The deployed service runs the tuned Random Forest with its own decoder parameters (α = 1, β = 3, jump penalty 10) and reproduces the student-testing figures exactly.
 
 ### 1.3. Hyperparameter Optimisation
 
@@ -41,7 +43,7 @@ Bayesian optimisation used the Optuna tree-structured Parzen estimator on the fi
 | Random Forest, random search | 150,000 rows per fold | 9 | 0.9319 | 0.9321 | 4 of 5 |
 | HistGradientBoosting, TPE | All rows | 50 | 0.9316 | 0.9341 | 5 of 5 |
 
-The Random Forest search converged: ten consecutive completed trials gave no gain above 0.0005, and the leading trials share one region of the space. Its best configuration adds `class_weight="balanced_subsample"` to the `models/rf.py` configuration. A full-size harness run of that configuration reached 0.9337 against 0.9335 with a higher log loss, so the untuned Random Forest remains the deployed model. The full-size check is in `results/tuning/rf_fullsize_check.json`.
+The Random Forest search converged: ten consecutive completed trials gave no gain above 0.0005, and the leading trials share one region of the space. Its best configuration adds `class_weight="balanced_subsample"` to the `models/rf.py` configuration. The guidelines require the selected model to be refitted with the chosen configuration and its outputs to feed the decoder and the interface. The tuned configuration is therefore `models/rf_tuned.py`. It was refitted on all training rows, the decoder was retuned on its out-of-fold predictions and it is the deployed model. A full-size harness run reached CV macro F1 0.9337 against 0.9335 for the untuned configuration, with log loss 0.0732 against 0.0720 and inference time 33.7 against 60.1 ms per 1,000 observations. The full-size check is in `results/tuning/rf_fullsize_check.json` and the tuned harness results are in `results/tuning/rf_tuned/`.
 
 ## 2. Repository Layout
 
@@ -95,11 +97,13 @@ The script runs EDA steps 1 to 6, trains every model through the harness, applie
 .venv/bin/python tuning/tune_rf.py --sampler tpe --study rf          # Random Forest, TPE
 .venv/bin/python tuning/tune_rf.py --sampler random --study rf_random # Random Forest, random search
 .venv/bin/python tuning/tune_hgb.py --trials 60                      # HistGradientBoosting, TPE
+.venv/bin/python models/run.py rf_tuned                              # refit of the tuned configuration
+.venv/bin/python hmm/tune.py --model rf_tuned && .venv/bin/python hmm/final.py --model rf_tuned
 ```
 
 ### 4.4. Deployment
 
-Laptop 1 builds the deployment model and serves the evaluation trips. `train_final.py` uses the model selected in `results/models/comparison.csv` unless `--model` is given.
+Laptop 1 builds the deployment model and serves the evaluation trips. `train_final.py` uses the model selected in `results/models/comparison.csv` in its tuned form `models/<model>_tuned.py`, unless `--model` is given.
 
 ```bash
 .venv/bin/python api/train_final.py              # deployment model and decoder parameters

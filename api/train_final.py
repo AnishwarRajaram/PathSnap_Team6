@@ -1,7 +1,9 @@
 """Fit the deployment model and bundle it with its tuned decoder parameters.
 
 The model is any module in models/ that follows the harness interface. By default
-the model selected in results/models/comparison.csv is used. The classifier is
+the model selected in results/models/comparison.csv is used, in its tuned form
+models/<selected>_tuned.py when that module exists (guidelines section 7: refit the
+selected model with the chosen configuration). The classifier is
 fitted on every reliable training row (80 trips), or on the module's
 MAX_TRAIN_ROWS sample. Student-test trips are not used, so they remain a clean
 check of the deployed pipeline.
@@ -10,7 +12,7 @@ Hyperparameters come from the module CONFIG. Decoder parameters come from
 results/hmm/decoder_<model>.json, which hmm/tune.py writes.
 
 Writes artifacts/models/final.joblib (gitignored).
-Usage: PATHSNAP_DATA=<data root> python api/train_final.py [--model rf]
+Usage: PATHSNAP_DATA=<data root> python api/train_final.py [--model rf_tuned]
 """
 from __future__ import annotations
 
@@ -34,7 +36,8 @@ OUT = ROOT / "artifacts" / "models" / "final.joblib"
 
 def selected_model() -> str:
     c = pd.read_csv(ROOT / "results" / "models" / "comparison.csv")
-    return str(c.loc[c.selected.astype(bool), "model"].iloc[0])
+    name = str(c.loc[c.selected.astype(bool), "model"].iloc[0])
+    return f"{name}_tuned" if (ROOT / "models" / f"{name}_tuned.py").exists() else name
 
 
 def main():

@@ -66,6 +66,13 @@ def folium_map(acc: pd.DataFrame):
         return [(nodes.lat.iat[u], nodes.lon.iat[u]), (nodes.lat.iat[v], nodes.lon.iat[v])]
 
     m = folium.Map(tiles="OpenStreetMap", control_scale=True)
+    # Road network: every arc with an end node inside the trip's bounding box (plus a small margin).
+    pad = 0.002
+    box = nodes.lat.between(t.lat.min() - pad, t.lat.max() + pad) & nodes.lon.between(t.lon.min() - pad, t.lon.max() + pad)
+    near = np.flatnonzero(box.to_numpy()[arcs.u.to_numpy()] | box.to_numpy()[arcs.v.to_numpy()])
+    road = folium.FeatureGroup("Road network")
+    folium.PolyLine([arc_line(int(a)) for a in near], color="#555555", weight=1, opacity=.6).add_to(road)
+    road.add_to(m)
     layers = [("Reference route", trip.route, "#1b7f3b", 7), ("Classifier only (top pick)", np.unique(best.arc_id), "#ff7f0e", 4),
               ("Classifier + HMM route", np.unique(route), "#6a3d9a", 3)]
     for name, arcs_, col, w in layers:
@@ -82,7 +89,7 @@ def folium_map(acc: pd.DataFrame):
     m.get_root().html.add_child(Element(
         '<div style="position:fixed;bottom:24px;left:24px;z-index:9999;background:white;border:1px solid #333;'
         'padding:8px 10px;font:12px sans-serif;line-height:1.6"><b>Train trip, out-and-back</b><br>'
-        '<span style="color:#1b7f3b">&#9473;</span> reference route<br><span style="color:#ff7f0e">&#9473;</span> classifier only<br>'
+        '<span style="color:#555555">&#9473;</span> road network<br><span style="color:#1b7f3b">&#9473;</span> reference route<br><span style="color:#ff7f0e">&#9473;</span> classifier only<br>'
         '<span style="color:#6a3d9a">&#9473;</span> classifier + HMM<br><span style="color:#1f4fd1">&#9679;</span> GPS observation</div>'))
     (ROOT / "results" / "maps").mkdir(parents=True, exist_ok=True)
     m.save(ROOT / "results" / "maps" / "hmm_train_out_and_back.html")

@@ -47,9 +47,9 @@ step "EDA 5: candidate radius sweep"   "$PYTHON" eda/05_candidate_sweep.py
 step "EDA 6: features and analysis"    "$PYTHON" eda/06_features.py
 [ "$MAPS" = 1 ] && step "EDA 7: Folium maps" "$PYTHON" eda/07_maps.py
 
-# Every model module except the shared infrastructure files.
+# Every model module except the shared infrastructure files and tuned refits.
 MODELS=$(ls models/*.py | xargs -n1 basename | sed 's/\.py$//' \
-  | grep -vE '^(__init__|_template|harness|run|compare|prepare_data)$')
+  | grep -vE '^(__init__|_template|harness|run|compare|prepare_data|.*_tuned)$')
 for m in $MODELS; do
   step "Model: $m" "$PYTHON" models/run.py "$m"
 done

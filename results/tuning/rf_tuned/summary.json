@@ -1,0 +1,48 @@
+{
+  "name": "rf_tuned",
+  "family": "Ensemble (bagging of decision trees)",
+  "config": {
+    "n_estimators": 300,
+    "max_features": "sqrt",
+    "min_samples_leaf": 2,
+    "max_depth": null,
+    "class_weight": "balanced_subsample",
+    "random_state": 2026,
+    "n_jobs": -1
+  },
+  "max_train_rows": null,
+  "cv_mean": {
+    "macro_f1": 0.9336947557931176,
+    "precision": 0.8864421643450235,
+    "recall": 0.8797911400618122,
+    "log_loss": 0.07316849303033095,
+    "top1": 0.8814446383939547,
+    "route_continuity": 0.7554119632417373,
+    "fit_s": 166.24350409180042,
+    "infer_ms_per_1k_obs": 29.445982473539118,
+    "train_rows": 1183890.4,
+    "val_rows": 295972.6
+  },
+  "cv_std": {
+    "macro_f1": 0.02940439245836008,
+    "precision": 0.05190816363201082,
+    "recall": 0.05847297486955332,
+    "log_loss": 0.02223176662616331,
+    "top1": 0.06371684896342096,
+    "route_continuity": 0.09098781380015715,
+    "fit_s": 26.564749235548824,
+    "infer_ms_per_1k_obs": 5.073679163263957,
+    "train_rows": 55311.082463643754,
+    "val_rows": 55311.082463643754
+  },
+  "student_test": {
+    "macro_f1": 0.9313128665389676,
+    "precision": 0.8791992033960484,
+    "recall": 0.877038895859473,
+    "log_loss": 0.0680030809094005,
+    "top1": 0.8804683008414781,
+    "route_continuity": 0.7419287648406582,
+    "fit_s": 220.76592666699798,
+    "infer_ms_per_1k_obs": 33.66150760457838
+  }
+}
