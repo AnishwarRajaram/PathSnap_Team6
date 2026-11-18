@@ -98,7 +98,11 @@ PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to 
 
 ## 7. Input Contract
 
-The team defines the input contract after exploratory analysis, dimensionality analysis and feature selection are complete. The contract specifies the candidate generation rule, the feature schema with units and types, and the request and response formats of the API. The agreed contract is committed to `main` alongside this document.
+7.1. The input contract is `docs/INPUT_CONTRACT.md`, version 1.0. It fixes the candidate generation rule, the 14-feature schema with units and types, the label rule, the classifier and decoder interfaces, the API request and response formats and the metric definitions.
+
+7.2. Every stage conforms to the contract. A change to any field, unit or rule requires a new contract version committed to `main`.
+
+7.3. The full exploratory analysis that supports the contract resides on `anishwar` under `eda/` and `results/eda/`.
 
 ## 8. Status Record
 
@@ -106,5 +110,6 @@ The team defines the input contract after exploratory analysis, dimensionality a
 |---|---|
 | Repository and branches | Created |
 | Data received | Training 80 trips. Student-testing 10 trips. |
-| Exploratory analysis | In progress |
-| Input contract | Not started |
+| Exploratory analysis | Complete |
+| Input contract | Version 1.0 approved |
+| Model comparison | Not started |
