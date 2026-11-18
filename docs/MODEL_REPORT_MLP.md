@@ -4,7 +4,7 @@
 |---|---|
 | Model | Multilayer Perceptron (`mlp`) |
 | Algorithm family | Neural network |
-| Owner | [Team Name / Author Name] |
+| Owner | Team 6 |
 | Code | `models/mlp.py` |
 | Results | `results/models/mlp/` |
 

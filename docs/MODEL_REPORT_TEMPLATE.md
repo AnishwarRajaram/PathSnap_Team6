@@ -4,7 +4,7 @@
 |---|---|
 | Model | [Model Name] |
 | Algorithm family | [Family] |
-| Owner | [Team Member Name] |
+| Owner | Team 6 |
 | Code | `models/[name].py` |
 | Results | `results/models/[name]/` |
 

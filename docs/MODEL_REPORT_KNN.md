@@ -4,7 +4,7 @@
 |---|---|
 | Model | Distance-weighted k-Nearest Neighbours (kNN) |
 | Algorithm family | Instance-based |
-| Owner | [Team Name / Author Name] |
+| Owner | Team 6 |
 | Code | `models/knn.py` |
 | Results | `results/models/knn/` |
 

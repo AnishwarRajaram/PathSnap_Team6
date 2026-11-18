@@ -4,7 +4,7 @@
 |---|---|
 | Model | Random Forest (`rf`) |
 | Algorithm family | Ensemble (bagging of decision trees) |
-| Owner | [Team Name / Author Name] |
+| Owner | Team 6 |
 | Code | `models/rf.py` |
 | Results | `results/models/rf/` |
 

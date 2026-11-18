@@ -2,7 +2,7 @@
 
 PathSnap matches noisy 1 Hz GPS observations to a road network and reconstructs the driven route. A classifier scores the candidate road arcs of each observation. A hidden Markov model with Viterbi decoding then selects a connected route through the road graph. A FastAPI service and an evaluator interface run the pipeline on two laptops.
 
-Team: [Team Name / Author Name]. Course: UE24CS352A Machine Learning.
+Team 6. Course: UE24CS352A Machine Learning.
 
 ## 1. Results
 
@@ -26,7 +26,7 @@ Random Forest is selected. HistGradientBoosting and the multilayer perceptron li
 | Configuration | Train OOF Top-1 | Train OOF continuity | Student-test Top-1 | Student-test continuity | Student-test route F1 |
 |---|---|---|---|---|---|
 | Random Forest only | 88.7% | 75.7% | 88.2% | 74.2% | 0.942 |
-| Random Forest with HMM | 92.4% | 89.4% | 92.2% | 89.8% | 0.975 |
+| Random Forest with HMM | 92.4% | 89.4% | 92.2% | 89.9% | 0.976 |
 | Distance-only HMM | 89.0% | 89.7% | 89.7% | 89.4% | 0.968 |
 
 Continuity is measured before path filling. The drivable route returned by the decoder reaches 99.9% continuity. The deployed service reproduces the student-testing figures exactly.

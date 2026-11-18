@@ -3,7 +3,7 @@
 | Item | Value |
 |---|---|
 | Project | PathSnap |
-| Team | [Team Name / Author Name] |
+| Team | Team 6 |
 | Version | 1.1 |
 | Status | Approved |
 | Location | `docs/INPUT_CONTRACT.md` |

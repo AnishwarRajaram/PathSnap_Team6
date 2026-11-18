@@ -1,8 +1,8 @@
 # PathSnap: Map-Matching and Route Reconstruction from Noisy GPS
 
-[Team Name / Author Name]
+Team 6
 
-UE24CS352A Machine Learning. [Evaluator/Organization Name].
+UE24CS352A Machine Learning.
 
 ## 1. Introduction
 
@@ -70,7 +70,7 @@ The decoder was tuned on out-of-fold predictions of the classifier. Top-1 accura
 | Distance-only HMM | 89.0% | 89.7% | 89.7% | 89.4% | 0.968 |
 | HistGradientBoosting with HMM | 92.4% | 90.0% | 92.8% | 90.3% | 0.965 |
 | Random Forest only | 88.7% | 75.7% | 88.2% | 74.2% | 0.942 |
-| Random Forest with HMM | 92.4% | 89.4% | 92.2% | 89.8% | 0.975 |
+| Random Forest with HMM | 92.4% | 89.4% | 92.2% | 89.9% | 0.976 |
 
 The decoder tuned on Random Forest predictions uses β = 2 and a jump penalty of 10. Random Forest with HMM matches HistGradientBoosting with HMM on training out-of-fold Top-1, at 92.37% against 92.41%. The classifier ranking of section 4 does not carry through the decoder. The decoder removes most of the per-observation difference between the two classifiers.
 

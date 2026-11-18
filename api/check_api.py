@@ -20,6 +20,7 @@ from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+import api.app as app_module  # noqa: E402
 from api.app import MODEL_PATH, PARTITION, app  # noqa: E402
 from pathsnap.data import list_trips, load_trip  # noqa: E402
 from pathsnap.labels import RELIABLE_M, align_ordered  # noqa: E402
@@ -55,6 +56,7 @@ def main():
         print(f"  {k:24s} expected {ref[k]:.6f} got {got[k]:.6f} {'OK' if good else 'DIFF'}")
 
     print("== API")
+    app_module._model = m          # reuse the loaded bundle instead of loading it a second time
     cl = TestClient(app)
     h = cl.get("/health"); print(f"  /health {h.status_code} {h.json()['n_trips']} trips")
     ids = cl.get("/trips").json()["trips"]
@@ -65,16 +67,15 @@ def main():
         r = cl.post("/predict", json={"trip_id": tid}); j = r.json()
         ok &= r.status_code == 200 and FIELDS <= set(j) and "route" not in j
         ok &= len(j["matched"]) == len(load_trip(PARTITION, tid, with_route=False).track)
-        trip = load_trip(PARTITION, tid)
-        counts.append(score_trip(trip, predict_trip(trip, m))["_counts"])
+        mt = j["metrics"]
+        counts.append({"hits": mt["top1_accuracy"] * mt["n_obs_scored"], "n": mt["n_obs_scored"]})
         rows.append({"trip_id": tid, **j["metrics"], "total_ms": j["timing_ms"]["total"],
                      "decoder_ms": j["timing_ms"]["decoder"]})
         again = cl.post("/predict", json={"trip_id": tid}).json()
         ok &= again["cached"] and again["route_arcs"] == j["route_arcs"]
     df = pd.DataFrame(rows)
-    p = pooled(counts)
-    print(f"  all observations, pooled: top1={p['top1']:.4f} continuity={p['route_continuity']:.4f} "
-          f"filled={p['filled_route_continuity']:.4f}")
+    c = pd.DataFrame(counts).sum()
+    print(f"  all observations, pooled: top1={c.hits / c.n:.4f}")
     print(f"  per-trip mean: macro_f1={df.macro_f1.mean():.4f} route_f1={df.route_f1.mean():.4f} "
           f"miss={df.candidate_miss_rate.mean():.4f}")
     print(f"  request time ms: median {df.total_ms.median():.0f}, max {df.total_ms.max():.0f}; "

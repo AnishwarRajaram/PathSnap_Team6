@@ -1,6 +1,6 @@
 # PathSnap Exploratory Data Analysis Summary
 
-[Team Name / Author Name]
+Team 6
 
 All figures are produced by the scripts in `eda/`. Values are computed on the training partition unless stated otherwise.
 
