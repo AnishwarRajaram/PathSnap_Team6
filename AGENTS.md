@@ -4,7 +4,7 @@ This document is the shared operating context for every team member and every AI
 
 ## 1. Branch Policy
 
-1.1. The `main` branch is the shared reference for the team. It holds this document, the input contract, the shared library `pathsnap/`, the model harness and templates under `models/`, the fixed folds file, the dependency list and the exploratory data analysis entry script. No experiment results or individual model work are committed to `main`.
+1.1. The `main` branch is the shared reference for the team. It holds this document, the input contract, the shared library `pathsnap/`, the model harness and templates under `models/`, the fixed folds file, the dependency list, the exploratory data analysis scripts under `eda/` and the reproduction script `scripts/reproduce_viva1.sh`. No experiment results or individual model work are committed to `main`.
 
 1.2. The `anishwar` branch is the working branch. All modelling code, experiments, results and report sources are committed there. Team members read setup material from `main` and commit their work to `anishwar`. The team does not merge `anishwar` into `main`.
 
