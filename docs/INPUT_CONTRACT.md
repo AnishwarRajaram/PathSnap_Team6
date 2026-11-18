@@ -4,7 +4,7 @@
 |---|---|
 | Project | PathSnap |
 | Team | [Team Name / Author Name] |
-| Version | 1.0 |
+| Version | 1.1 |
 | Status | Approved |
 | Location | `main` branch. The working copy on `anishwar` must match it. |
 
@@ -81,11 +81,15 @@ Each row describes one pair of a GPS observation and a candidate arc. The model 
 
 7.1. Hidden states are the candidate arcs of each observation.
 
-7.2. Emission score for candidate c of observation i is p(i, c) normalised over the candidates of observation i.
+7.2. The emission score for candidate c of observation i is alpha multiplied by the logarithm of p(i, c) normalised over the candidates of observation i.
 
-7.3. Transition scores use the road graph of the same trip. The exact form is fixed by the HMM stage and recorded in its configuration file.
+7.3. The transition score from candidate a to candidate b is the negative absolute difference between the road distance and the GPS distance, divided by beta. The road distance follows the directed road graph of the same trip. Movement backwards along the same arc is allowed up to 10 m.
 
-7.4. Output is one arc_id per observation and the ordered list of distinct consecutive arcs as the predicted route.
+7.4. A transition with no road path within the search radius receives the score of the jump penalty plus the GPS distance divided by beta, with a negative sign. The search radius is the larger of 200 m, the elapsed time multiplied by 50 m/s and three times the GPS distance, capped at 5 km.
+
+7.5. The tuned values of alpha, beta and the jump penalty are stored in `results/hmm/decoder_<model>.json`. They are tuned on out-of-fold training predictions only.
+
+7.6. The decoder returns one arc_id per observation. It also returns a drivable route. The drivable route joins consecutive distinct observation arcs with shortest paths in the road graph.
 
 ## 8. API Interface
 
@@ -97,9 +101,9 @@ Each row describes one pair of a GPS observation and a candidate arc. The model 
 |---|---|---|
 | trip_id | string | Echo of the request |
 | matched | list | One entry per observation: obs_idx, arc_id, lon, lat of the projected point |
-| route_arcs | list of int | Predicted route as ordered distinct arcs |
+| route_arcs | list of int | Drivable predicted route as defined in 7.6 |
 | route_geojson | object | LineString of the predicted route for display |
-| metrics | object | top1_accuracy, macro_f1, candidate_miss_rate, route_continuity, n_obs_scored |
+| metrics | object | top1_accuracy, macro_f1, candidate_miss_rate, route_continuity, filled_route_continuity, route_f1, n_obs_scored |
 | timing_ms | object | candidates, features, classifier, decoder, total |
 
 8.3. The response never contains reference-route arcs or labels.
@@ -111,5 +115,14 @@ Each row describes one pair of a GPS observation and a candidate arc. The model 
 | Top-1 accuracy | Share of reliable observations whose predicted canonical arc equals the label arc |
 | Macro F1 | Macro-averaged F1 over the binary candidate rows at threshold 0.5 |
 | Candidate miss rate | Share of reliable observations whose label arc is absent from the candidate set |
-| Route continuity | Share of consecutive distinct predicted arcs where the end node of the first equals the start node of the second |
+| Route continuity | Share of consecutive distinct per-observation arcs where the end node of the first equals the start node of the second. It is computed before path filling. |
+| Filled route continuity | The same measure computed on the drivable route. It is reported separately. |
+| Route F1 | Harmonic mean of length-weighted precision and recall of the distinct canonical arcs of the drivable route against the reference route |
 | Log loss | Binary cross-entropy over candidate rows |
+
+## 10. Change Record
+
+| Version | Change |
+|---|---|
+| 1.0 | Initial contract after exploratory analysis |
+| 1.1 | Decoder emission, transition, jump penalty and search radius defined. The API returns the drivable route. Route continuity is measured before path filling. Filled route continuity and route F1 added. |

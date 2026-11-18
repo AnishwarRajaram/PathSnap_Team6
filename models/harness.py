@@ -10,6 +10,8 @@ Protocol (fixed before training, see docs/MODEL_REPORT_TEMPLATE.md):
   * Reported: Top-1 accuracy, precision, recall, log loss, route continuity of the
     classifier-only top pick, student-test metrics, training and inference time.
   * Student-test results are never used for model or hyperparameter choice.
+  * Out-of-fold train predictions and student-test predictions are saved to
+    artifacts/oof for the HMM decoder (gitignored).
 
 A model module defines NAME, FAMILY, CONFIG and build(config) -> estimator with
 fit and predict_proba. Optional: MAX_TRAIN_ROWS (observation-level subsample of
@@ -38,6 +40,8 @@ from pathsnap.features import SELECTED
 ROOT = Path(__file__).resolve().parents[1]
 FEATURES_DIR = ROOT / "artifacts" / "features"
 MODELS_DIR = ROOT / "artifacts" / "models"
+OOF_DIR = ROOT / "artifacts" / "oof"
+KEEP_COLS = ["trip_id", "obs_idx", "arc_id", "y", "dist_m", "proj_frac", "arc_len_m"]
 RESULTS = ROOT / "results" / "models"
 FOLDS_CSV = RESULTS / "folds.csv"
 N_FOLDS = 5
@@ -150,7 +154,7 @@ def evaluate(module, skip_student_test: bool = False) -> dict:
     fold_of = folds(train)
     fid = train.trip_id.map(fold_of).to_numpy()
 
-    rows, histories = [], []
+    rows, histories, oof = [], [], []
     for k in range(N_FOLDS):
         tr = subsample_obs(train[fid != k], max_rows)
         va = train[fid == k].reset_index(drop=True)
@@ -160,6 +164,7 @@ def evaluate(module, skip_student_test: bool = False) -> dict:
         fit_s = time.perf_counter() - t0
         p, ms = _predict(est, va[SELECTED].to_numpy(), va[["trip_id", "obs_idx"]].drop_duplicates().shape[0])
         r = score(va, p, "train")
+        oof.append(va[KEEP_COLS].assign(p=p, fold=k))
         r.update(fold=k, fit_s=fit_s, infer_ms_per_1k_obs=ms, train_rows=len(tr), val_rows=len(va))
         rows.append(r)
         print(f"[{name}] fold {k}: macro_f1={r['macro_f1']:.4f} top1={r['top1']:.4f} "
@@ -170,6 +175,8 @@ def evaluate(module, skip_student_test: bool = False) -> dict:
                 histories.append(h.assign(fold=k))
     cv = pd.DataFrame(rows)
     cv.to_csv(out / "cv_folds.csv", index=False)
+    OOF_DIR.mkdir(parents=True, exist_ok=True)
+    pd.concat(oof, ignore_index=True).to_pickle(OOF_DIR / f"{name}_train_oof.pkl")
 
     summary = {"name": name, "family": module.FAMILY, "config": cfg, "max_train_rows": max_rows,
                "cv_mean": cv.drop(columns="fold").mean().to_dict(),
@@ -184,6 +191,7 @@ def evaluate(module, skip_student_test: bool = False) -> dict:
         st = load_rows("student_test")
         p, ms = _predict(est, st[SELECTED].to_numpy(), st[["trip_id", "obs_idx"]].drop_duplicates().shape[0])
         s = score(st, p, "student_test")
+        st[KEEP_COLS].assign(p=p).to_pickle(OOF_DIR / f"{name}_student_test.pkl")
         s.update(fit_s=fit_s, infer_ms_per_1k_obs=ms)
         summary["student_test"] = s
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
