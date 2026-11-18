@@ -1,0 +1,10 @@
+{
+  "model": "hgb",
+  "alpha": 1.0,
+  "beta": 3.0,
+  "jump_penalty": 10.0,
+  "sigma": 7.299749374389648,
+  "distance_hmm_beta": 20.0,
+  "objective": "train OOF Top-1",
+  "train_oof_top1": 0.9240800112266158
+}
