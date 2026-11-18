@@ -119,6 +119,18 @@ python3 -m http.server 8080 -d ui                # then open http://localhost:80
 
 The request and response formats are fixed in `docs/INPUT_CONTRACT.md`.
 
+### 4.5. Model Weights
+
+The fitted model files are not stored in the repository. The deployed bundle `artifacts/models/final.joblib` holds a 300-tree Random Forest fitted on 1.48 million training rows and is about 1.25 GB, above the 100 MB file limit of GitHub. Every input needed to rebuild it is committed: the model configuration (`models/rf_tuned.py`), the feature list (`pathsnap/features.py`), the decoder parameters (`results/hmm/decoder_rf_tuned.json`) and the training code (`api/train_final.py`). The fit is deterministic through a fixed random seed and takes about four minutes on a laptop CPU.
+
+```bash
+export PATHSNAP_DATA=/path/to/"Student folder"
+.venv/bin/python api/train_final.py              # writes artifacts/models/final.joblib
+.venv/bin/python api/check_api.py                # must print PASS
+```
+
+`check_api.py` confirms the rebuilt bundle against the committed student-testing results in `results/hmm/final_rf_tuned_student_test_summary.csv` to a tolerance of 1e-9.
+
 ## 5. Method Summary
 
 | Step | Method |
