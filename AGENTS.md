@@ -4,11 +4,15 @@ This document is the shared operating context for every team member and every AI
 
 ## 1. Branch Policy
 
-1.1. The `main` branch is the shared reference for the team. It holds this document, the input contract, the shared library `pathsnap/`, the model harness and templates under `models/`, the fixed folds file, the dependency list, the exploratory data analysis scripts under `eda/` and the reproduction script `scripts/reproduce_viva1.sh`. No experiment results or individual model work are committed to `main`.
+1.1. The `main` branch is the integration branch. It holds this document, the input contract, the shared library `pathsnap/`, the model harness and templates under `models/`, the fixed folds file, the dependency list, the exploratory data analysis scripts under `eda/`, the reproduction script `scripts/reproduce_viva1.sh` and the merged results of every team member.
 
-1.2. The `anishwar` branch is the working branch. All modelling code, experiments, results and report sources are committed there. Team members read setup material from `main` and commit their work to `anishwar`. The team does not merge `anishwar` into `main`.
+1.2. Each team member works on a personal branch cut from the latest `main`. The branches are `anishwar`, `anusha`, `bharath` and `bhuvi`. Each model is developed on its owner's branch.
 
-1.3. The team may create a separate repository for the final presentation. Until that decision is made, the history on `anishwar` remains unaltered. Contributors do not rewrite history or force-push.
+1.3. Finished work is merged back into `main` after review. A merge must not change shared files such as the harness, the folds file, the feature list or `requirements.txt` without team agreement. A merge must pass the checks in `AGENTS.md` section 5.
+
+1.4. Team members update their branches from `main` before starting a new stage so that every branch uses the current contract and shared code.
+
+1.5. Contributors do not rewrite history or force-push. The team may create a separate repository for the final presentation.
 
 ## 2. Problem Statement
 
@@ -102,7 +106,7 @@ PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to 
 
 7.2. Every stage conforms to the contract. A change to any field, unit or rule requires a new contract version committed to `main`.
 
-7.3. The full exploratory analysis that supports the contract resides on `anishwar` under `eda/` and `results/eda/`.
+7.3. The full exploratory analysis that supports the contract is merged into `main` under `eda/` and `results/eda/`.
 
 ## 8. Status Record
 

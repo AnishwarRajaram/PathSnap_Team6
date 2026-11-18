@@ -12,7 +12,7 @@
 
 ## 2. Setup
 
-1. Clone the repository. Read this file and `docs/INPUT_CONTRACT.md` on `main`. Then check out the `anishwar` branch, where all model work is committed.
+1. Clone the repository. Read this file and `docs/INPUT_CONTRACT.md` on `main`. Create or update your personal branch from the latest `main` and develop your model there. Finished results are merged back into `main` after review.
 2. Create the environment: `python3 -m venv .venv` and `.venv/bin/pip install -r requirements.txt`.
 3. Place the issued student folder outside version control and set `PATHSNAP_DATA` to its path.
 4. Build labels and features: `.venv/bin/python models/prepare_data.py`. The command takes about 10 seconds.
