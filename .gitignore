@@ -30,3 +30,6 @@ venv/
 .claude/
 .vscode/
 .idea/
+
+# Generated labels and features (derived data)
+artifacts/
