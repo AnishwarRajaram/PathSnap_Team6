@@ -1,0 +1,19 @@
+{
+  "objective": "mean CV macro F1, 5 trip-grouped folds, reliable rows",
+  "baseline_trial0_macro_f1": 0.9315500067221819,
+  "best_macro_f1": 0.9340582534842945,
+  "best_fold_std": 0.029916661478282154,
+  "best_trial": 57,
+  "best_params": {
+    "learning_rate": 0.023692714310319416,
+    "max_iter": 350,
+    "max_leaf_nodes": 67,
+    "min_samples_leaf": 209,
+    "l2_regularization": 0.0005605972244322312,
+    "early_stopping": false,
+    "class_weight": null
+  },
+  "n_trials": 59,
+  "n_complete": 50,
+  "n_pruned": 9
+}

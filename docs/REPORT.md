@@ -8,7 +8,7 @@ UE24CS352A Machine Learning.
 
 PathSnap reconstructs the road route of a vehicle from noisy GPS observations sampled at 1 Hz. The system assigns one road arc to every observation. The ordered arcs form a drivable route. The pipeline has four stages: candidate generation, candidate scoring by a binary classifier, sequence decoding by a hidden Markov model and deployment as a two-machine service.
 
-Every metric, figure and map in this report is produced by code in the repository. Section 8 lists the commands.
+Every metric, figure and map in this report is produced by code in the repository. Section 9 lists the commands.
 
 ## 2. Dataset
 
@@ -18,7 +18,7 @@ Every metric, figure and map in this report is produced by code in the repositor
 
 2.3. Sampling is 1 Hz for 96.5% of training steps. Eleven training trips contain a gap longer than 300 s. Nodes trace road geometry and are not limited to junctions. The median arc length is about 25 m. About 92% of arcs have a reverse twin with identical geometry. Direction therefore cannot be inferred from position alone.
 
-2.4. The reference route lists arcs but does not assign observations to arcs. It is not verified ground truth. Section 7 states its limitations.
+2.4. The reference route lists arcs but does not assign observations to arcs. It is not verified ground truth. Section 8 states its limitations.
 
 ## 3. Methodology
 
@@ -60,7 +60,24 @@ Five classifiers from five algorithm families were evaluated under the protocol 
 
 Random Forest has the highest mean macro F1. HistGradientBoosting and the multilayer perceptron lie within one fold standard deviation of it, so the tie-break applies. Random Forest has the lowest log loss and is selected. All five models exceed the nearest-arc baseline of 55.0% Top-1 by more than 30 points. Fold-to-fold variation of about 0.03 exceeds every difference between the three leading models. The variation arises from trip difficulty rather than model choice. The table is produced by `models/compare.py`. Individual model reports are in `docs/`.
 
-## 5. Route Reconstruction
+## 5. Hyperparameter Optimisation
+
+5.1. Bayesian optimisation used the Optuna tree-structured Parzen estimator. Each trial ran the five fixed folds and returned mean macro F1. A median pruner stopped weak trials after the second fold. The untuned configuration was evaluated as trial 0 of every study. Student-testing data was not read.
+
+5.2. A full Random Forest fold takes several minutes, so the Random Forest search trained each fold on a fixed sample of 150,000 rows of whole observations and scored the full validation fold. The space covered the number of trees, the features per split, the minimum leaf size, the maximum depth and class weighting. The search stopped when ten consecutive completed trials gave no gain above 0.0005.
+
+| Study | Trials completed | Untuned | Best | Folds improved |
+|---|---|---|---|---|
+| Random Forest, TPE | 20 | 0.9319 | 0.9327 | 4 of 5 |
+| Random Forest, random search | 9 | 0.9319 | 0.9321 | 4 of 5 |
+
+5.3. The search converged. The five leading trials share the features-per-split rule, the leaf size and class weighting and differ by less than 0.0001. The best configuration adds `class_weight="balanced_subsample"` to the `models/rf.py` configuration. Random search with the same budget reached a lower best value.
+
+5.4. A full-size harness run of the best configuration reached CV macro F1 0.9337 against 0.9335, improved one fold of five and raised log loss from 0.0720 to 0.0732. The difference lies far inside one fold standard deviation and the lower log loss decides. The untuned Random Forest therefore remains the deployed model. The sample gain did not survive the full training set.
+
+5.5. A study on HistGradientBoosting with all training rows ran 50 completed trials. It raised macro F1 from 0.9316 to 0.9341 with a gain on all five folds. HistGradientBoosting was not selected, so this configuration is not deployed.
+
+## 6. Route Reconstruction
 
 The decoder was tuned on out-of-fold predictions of the classifier. Top-1 accuracy is pooled over reliable observations. Route continuity is the share of consecutive distinct arcs that connect in the road graph before path filling.
 
@@ -76,33 +93,34 @@ The decoder tuned on Random Forest predictions uses β = 2 and a jump penalty of
 
 The HMM raises Top-1 accuracy by about four points and continuity by about sixteen points over the classifier alone. The distance-only HMM, which ignores the classifier, reaches 89.0% Top-1, so the classifier contributes beyond geometry. With HistGradientBoosting the decoder made one training trip worse than the classifier alone and no student-testing trip worse. The drivable route reaches 99.9% filled continuity. Figures for the selected model are in `results/hmm/`.
 
-## 6. Deployment
+## 7. Deployment
 
-6.1. Laptop 1 runs a FastAPI service. It exposes `GET /health`, `GET /trips`, `GET /trips/{id}/track` and `POST /predict`. A prediction runs candidate generation, feature construction, the classifier and the decoder on the track, node and arc files of the trip. The service accepts only trip identifiers present in the served partition. When a reference route is present on the server it is used only to compute the metrics. Reference arcs and labels are never returned.
+7.1. Laptop 1 runs a FastAPI service. It exposes `GET /health`, `GET /trips`, `GET /trips/{id}/track` and `POST /predict`. A prediction runs candidate generation, feature construction, the classifier and the decoder on the track, node and arc files of the trip. The service accepts only trip identifiers present in the served partition. When a reference route is present on the server it is used only to compute the metrics. Reference arcs and labels are never returned.
 
-6.2. Laptop 2 serves a static page that lists the trips, sends a trip identifier and draws the GPS observations, the matched points and the predicted route on a map together with the metrics.
+7.2. Laptop 2 serves a static page that lists the trips, sends a trip identifier and draws the GPS observations, the matched points and the predicted route on a map together with the metrics.
 
-6.3. The check `api/check_api.py` decodes every student-testing trip through the deployed path and reproduces the offline Top-1 accuracy and continuity exactly. The deployed model is Random Forest with its tuned decoder.
+7.3. The check `api/check_api.py` decodes every student-testing trip through the deployed path and reproduces the offline Top-1 accuracy and continuity exactly. The deployed model is Random Forest with its tuned decoder.
 
-## 7. Limitations
+## 8. Limitations
 
-7.1. The reference route is not verified ground truth. Three training trips account for most unreliable observations. Labels depend on the alignment rule of section 3.2.
+8.1. The reference route is not verified ground truth. Three training trips account for most unreliable observations. Labels depend on the alignment rule of section 3.2.
 
-7.2. Arcs are treated as straight segments between consecutive nodes. Curved roads are represented by their shape points, so the median arc of 25 m keeps the approximation error small.
+8.2. Arcs are treated as straight segments between consecutive nodes. Curved roads are represented by their shape points, so the median arc of 25 m keeps the approximation error small.
 
-7.3. Reverse-twin arcs share geometry. Their separation relies on heading, which is unreliable at low speed and after gaps.
+8.3. Reverse-twin arcs share geometry. Their separation relies on heading, which is unreliable at low speed and after gaps.
 
-7.4. Fold variation exceeds the differences between the leading classifiers. The ranking of Random Forest, HistGradientBoosting and the multilayer perceptron is not statistically separated.
+8.4. Fold variation exceeds the differences between the leading classifiers. The ranking of Random Forest, HistGradientBoosting and the multilayer perceptron is not statistically separated.
 
-7.5. Evaluator-testing trips played no part in any modelling decision. Their score is unknown until evaluation.
+8.5. Evaluator-testing trips played no part in any modelling decision. Their score is unknown until evaluation.
 
-## 8. Reproducibility
+## 9. Reproducibility
 
 | Step | Command |
 |---|---|
 | Analysis and model selection | `bash scripts/reproduce.sh` |
 | One model through the harness | `python models/run.py <model>` |
 | Comparison and selection | `python models/compare.py` |
+| Bayesian optimisation | `python tuning/tune_rf.py --sampler tpe` and `python tuning/tune_hgb.py` |
 | Decoder tuning and comparison | `python hmm/tune.py --model <model>` and `python hmm/final.py --model <model>` |
 | HMM figures and map | `python hmm/report.py --model <model>` |
 | Deployment model and check | `python api/train_final.py` and `python api/check_api.py` |

@@ -31,6 +31,18 @@ Random Forest is selected. HistGradientBoosting and the multilayer perceptron li
 
 Continuity is measured before path filling. The drivable route returned by the decoder reaches 99.9% continuity. The deployed service reproduces the student-testing figures exactly.
 
+### 1.3. Hyperparameter Optimisation
+
+Bayesian optimisation used the Optuna tree-structured Parzen estimator on the five fixed trip folds with CV macro F1 as the objective. Each study evaluates the untuned configuration as its first trial.
+
+| Study | Budget | Trials completed | Untuned | Best | Folds improved |
+|---|---|---|---|---|---|
+| Random Forest, TPE | 150,000 rows per fold | 20 | 0.9319 | 0.9327 | 4 of 5 |
+| Random Forest, random search | 150,000 rows per fold | 9 | 0.9319 | 0.9321 | 4 of 5 |
+| HistGradientBoosting, TPE | All rows | 50 | 0.9316 | 0.9341 | 5 of 5 |
+
+The Random Forest search converged: ten consecutive completed trials gave no gain above 0.0005, and the leading trials share one region of the space. Its best configuration adds `class_weight="balanced_subsample"` to the `models/rf.py` configuration. A full-size harness run of that configuration reached 0.9337 against 0.9335 with a higher log loss, so the untuned Random Forest remains the deployed model. The full-size check is in `results/tuning/rf_fullsize_check.json`.
+
 ## 2. Repository Layout
 
 | Path | Contents |
@@ -39,6 +51,7 @@ Continuity is measured before path filling. The drivable route returned by the d
 | `eda/` | Exploratory analysis, steps 01 to 08 |
 | `models/` | Evaluation harness, one module per model, data preparation and model comparison |
 | `hmm/` | Decoder tuning, evaluation and figures |
+| `tuning/` | Bayesian optimisation of the classifiers |
 | `api/` | FastAPI service, deployment model training and service check |
 | `ui/` | Evaluator interface, a static page for the second laptop |
 | `scripts/` | `reproduce.sh` reruns the analysis and model comparison and checks the reference metrics |
@@ -76,7 +89,15 @@ The script runs EDA steps 1 to 6, trains every model through the harness, applie
 .venv/bin/python hmm/report.py --model rf        # HMM figures
 ```
 
-### 4.3. Deployment
+### 4.3. Hyperparameter Optimisation
+
+```bash
+.venv/bin/python tuning/tune_rf.py --sampler tpe --study rf          # Random Forest, TPE
+.venv/bin/python tuning/tune_rf.py --sampler random --study rf_random # Random Forest, random search
+.venv/bin/python tuning/tune_hgb.py --trials 60                      # HistGradientBoosting, TPE
+```
+
+### 4.4. Deployment
 
 Laptop 1 builds the deployment model and serves the evaluation trips. `train_final.py` uses the model selected in `results/models/comparison.csv` unless `--model` is given.
 
@@ -102,7 +123,7 @@ The request and response formats are fixed in `docs/INPUT_CONTRACT.md`.
 | Labels | Order-preserving dynamic-programming alignment of observations to reference route arcs |
 | Candidates | Arcs within 50 m, at most 16, with the 4 nearest within 500 m as fallback |
 | Features | 14 place-independent features on distance, position on arc, heading, motion, neighbouring observations and network shape |
-| Classifier | Binary: is this candidate the true arc. Selected by cross-validated macro F1 with trip-grouped folds |
+| Classifier | Binary: is this candidate the true arc. Selected by cross-validated macro F1 with trip-grouped folds, then tuned by Bayesian optimisation |
 | Decoder | HMM over candidate arcs. Emission from classifier probabilities. Transition from road distance against GPS distance on the directed graph. Viterbi with soft breaks |
 
 The full method and its evaluation are in `docs/REPORT.md`.

@@ -1,0 +1,17 @@
+{
+  "sampler": "Random search",
+  "trials": 12,
+  "complete": 9,
+  "best": 0.9321095772240298,
+  "best_trial": 9,
+  "best_params": {
+    "n_estimators": 300,
+    "max_features": "log2",
+    "min_samples_leaf": 2,
+    "max_depth": 16,
+    "class_weight": null
+  },
+  "baseline": 0.931943865529908,
+  "paired_gain_mean": 0.00016571169412191722,
+  "folds_improved": 4
+}

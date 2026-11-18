@@ -1,0 +1,38 @@
+{
+  "purpose": "Full-size check of the best Random Forest configuration from the 150,000-row search",
+  "protocol": "models/harness.py, all reliable training rows, 5 fixed trip-grouped folds",
+  "tuned_config": {
+    "n_estimators": 300,
+    "max_features": "sqrt",
+    "min_samples_leaf": 2,
+    "max_depth": null,
+    "class_weight": "balanced_subsample",
+    "random_state": 2026,
+    "n_jobs": -1
+  },
+  "cv_macro_f1": {
+    "models/rf.py": 0.9335205930626767,
+    "tuned": 0.9336947557931176
+  },
+  "cv_macro_f1_std": {
+    "models/rf.py": 0.030405885388823498,
+    "tuned": 0.02940439245836008
+  },
+  "cv_log_loss": {
+    "models/rf.py": 0.07203323735719652,
+    "tuned": 0.07316849303033095
+  },
+  "cv_top1": {
+    "models/rf.py": 0.8821171556141042,
+    "tuned": 0.8814446383939547
+  },
+  "fold_macro_f1_gain": [
+    0.002754788288433563,
+    -0.0011299329034656358,
+    -0.0004199558947933779,
+    -5.804752592930562e-06,
+    -0.00032828108537774625
+  ],
+  "folds_improved": 1,
+  "decision": "Difference within one fold standard deviation; lower log loss keeps models/rf.py. The deployed model is unchanged."
+}
