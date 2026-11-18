@@ -1,4 +1,4 @@
-"""Model N: <algorithm> (<family>). Owner: <teammate>.
+"""Model N: <algorithm> (<family>).
 
 Copy this file to models/<name>.py, fill in NAME, FAMILY, CONFIG and build, then run:
     PATHSNAP_DATA=<data root> python models/run.py <name>

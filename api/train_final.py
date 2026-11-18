@@ -6,12 +6,11 @@ fitted on every reliable training row (80 trips), or on the module's
 MAX_TRAIN_ROWS sample. Student-test trips are not used, so they remain a clean
 check of the deployed pipeline.
 
-Hyperparameters come from the module CONFIG. With --tuned they come from
-results/tuning/<model>_best.json. Decoder parameters come from
+Hyperparameters come from the module CONFIG. Decoder parameters come from
 results/hmm/decoder_<model>.json, which hmm/tune.py writes.
 
 Writes artifacts/models/final.joblib (gitignored).
-Usage: PATHSNAP_DATA=<data root> python api/train_final.py [--model rf] [--tuned]
+Usage: PATHSNAP_DATA=<data root> python api/train_final.py [--model rf]
 """
 from __future__ import annotations
 
@@ -41,16 +40,11 @@ def selected_model() -> str:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default=None, help="module name in models/; default: selected model")
-    ap.add_argument("--tuned", action="store_true")
     a = ap.parse_args()
     name = a.model or selected_model()
     module = importlib.import_module(f"models.{name}")
 
     cfg, source = dict(module.CONFIG), f"models/{name}.py"
-    if a.tuned:
-        best = ROOT / "results" / "tuning" / f"{name}_best.json"
-        cfg |= json.loads(best.read_text())["best_params"]
-        source = str(best.relative_to(ROOT))
     dec_path = ROOT / "results" / "hmm" / f"decoder_{name}.json"
     if not dec_path.exists():
         raise SystemExit(f"{dec_path.relative_to(ROOT)} missing. Run: python hmm/tune.py --model {name}")

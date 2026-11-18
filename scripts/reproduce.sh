@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reproduce every step up to model selection (viva phase 1).
+# Reproduce every step up to model selection.
 #
 #   1. Environment     .venv from requirements.txt (skipped if PYTHON is set)
 #   2. EDA             eda/01 to eda/06: inventory, track quality, road network,
@@ -7,11 +7,13 @@
 #   3. Maps            eda/07 Folium maps (optional, pass --maps)
 #   4. Models          every model module in models/ through the shared harness
 #   5. Selection       models/compare.py builds the comparison table and applies the rule
-#   6. Check           reference metrics of the lead-pair models must match within 0.002
+#   6. Check           reference metrics of all five models must match within 0.002
+#
+# Random Forest and the multilayer perceptron take most of the run time (about 90 minutes in all).
 #
 # Usage:
 #   export PATHSNAP_DATA=/path/to/"Student folder"
-#   bash scripts/reproduce_viva1.sh [--maps]
+#   bash scripts/reproduce.sh [--maps]
 #
 # Outputs go to results/ and artifacts/ (artifacts are gitignored).
 set -euo pipefail
@@ -58,10 +60,13 @@ echo; echo "== Reproducibility check"
 "$PYTHON" - <<'PY'
 import json, sys
 from pathlib import Path
-# Reference values recorded when the harness was first run (seed 0, fixed folds).
+# Reference values recorded from the harness runs (fixed folds, fixed seeds).
 REF = {
     "logreg": {"cv_macro_f1": 0.9080, "cv_top1": 0.8693, "st_macro_f1": 0.9106, "st_top1": 0.8666},
     "hgb":    {"cv_macro_f1": 0.9316, "cv_top1": 0.8795, "st_macro_f1": 0.9329, "st_top1": 0.8850},
+    "rf":     {"cv_macro_f1": 0.9335, "cv_top1": 0.8821, "st_macro_f1": 0.9315, "st_top1": 0.8816},
+    "mlp":    {"cv_macro_f1": 0.9280, "cv_top1": 0.8798, "st_macro_f1": 0.9252, "st_top1": 0.8727},
+    "knn":    {"cv_macro_f1": 0.9151, "cv_top1": 0.8620},
 }
 TOL = 0.002
 bad = 0
@@ -70,8 +75,9 @@ for name, ref in REF.items():
     if not f.exists():
         print(f"  {name}: missing"); bad += 1; continue
     s = json.loads(f.read_text())
+    st = s.get("student_test") or {}
     got = {"cv_macro_f1": s["cv_mean"]["macro_f1"], "cv_top1": s["cv_mean"]["top1"],
-           "st_macro_f1": s["student_test"]["macro_f1"], "st_top1": s["student_test"]["top1"]}
+           "st_macro_f1": st.get("macro_f1"), "st_top1": st.get("top1")}
     for k, v in ref.items():
         ok = abs(got[k] - v) <= TOL
         bad += not ok

@@ -4,23 +4,23 @@
 |---|---|
 | Model | Distance-weighted k-Nearest Neighbours (kNN) |
 | Algorithm family | Instance-based |
-| Owner | Teammate 3 |
+| Owner | [Team Name / Author Name] |
 | Code | `models/knn.py` |
 | Results | `results/models/knn/` |
 
-## Evaluation Protocol
+## 1. Evaluation Protocol
 
 kNN was evaluated with the shared protocol in `models/harness.py`. Its input is the 14 selected features from input contract version 1.1, in the fixed contract order. Unreliable observations are excluded. The harness uses grouped five-fold cross-validation with the fixed trip assignments in `results/models/folds.csv`; each fold holds out complete trips. The primary metric is candidate-row macro F1 at threshold 0.5. Log loss is the tie-breaker when macro F1 results are within one fold standard deviation.
 
 The reported kNN results are from cross-validation on the training partition. Student-testing was skipped, so no student-testing results were used for model selection or are reported here.
 
-## Model Understanding
+## 2. Model Understanding
 
 kNN scores a candidate by finding the 15 nearest training examples in the scaled feature space. With distance weighting, nearer examples have more influence on the class vote than farther examples. The positive-class vote is returned as a probability through `predict_proba`.
 
 This is an instance-based method: it keeps the training examples for neighbour lookup rather than learning model weights through gradient-based training. It can represent local, non-linear patterns, but prediction can be expensive because it must search the stored examples. Scaling is important because the 14 features use different units and ranges.
 
-## Training and Configuration
+## 3. Training and Configuration
 
 The saved configuration in `summary.json` is:
 
@@ -36,7 +36,7 @@ The scaler is fitted as part of the estimator on each fold's training data, then
 
 kNN does not minimize a gradient-based loss during training. It stores the scaled examples and uses distance-weighted neighbour voting when it predicts.
 
-## Experimental Results
+## 4. Experimental Results
 
 The values below are means and standard deviations across the five training cross-validation folds, copied from `results/models/knn/summary.json`.
 
@@ -56,11 +56,11 @@ For context, the supplied baseline CV macro F1 values are 0.932 for HistGradient
 
 The fold scores vary, but these results alone are not sufficient to conclude that kNN overfits or underfits. No training-history curves are produced for this non-iterative model.
 
-## Visualisations
+## 5. Visualisations
 
 No visualisations are available in `results/models/knn/`; the saved files are `summary.json` and `cv_folds.csv`. In particular, student-testing was skipped, so the student-testing confusion matrix is unavailable. No iteration-wise history plot is applicable to kNN.
 
-## Observations
+## 6. Observations
 
 - The mean inference time is approximately 3,093 ms per 1,000 observations. This is a prediction-cost measure and is not directly comparable to fit time per fold.
 - The macro F1 standard deviation across folds is 0.0315, so performance varies between held-out trip groups.

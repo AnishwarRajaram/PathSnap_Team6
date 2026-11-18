@@ -1,4 +1,4 @@
-"""Model 5: Distance-weighted kNN (instance-based). Owner: Teammate 3."""
+"""Model 5: Distance-weighted kNN (instance-based)."""
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler

@@ -1,4 +1,4 @@
-"""Model 2: HistGradientBoosting (boosting family). Owner: Team 6 lead pair."""
+"""Model 2: HistGradientBoosting (boosting family)."""
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingClassifier

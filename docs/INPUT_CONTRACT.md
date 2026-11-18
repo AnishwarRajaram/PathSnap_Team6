@@ -6,7 +6,7 @@
 | Team | [Team Name / Author Name] |
 | Version | 1.1 |
 | Status | Approved |
-| Location | `main` branch. The working copy on `anishwar` must match it. |
+| Location | `docs/INPUT_CONTRACT.md` |
 
 ## 1. Scope
 

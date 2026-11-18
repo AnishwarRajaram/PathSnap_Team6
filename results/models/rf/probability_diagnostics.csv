@@ -1,0 +1,2 @@
+candidate_rows,observation_groups,exact_zero_count,exact_zero_fraction,exact_one_count,exact_one_fraction,unique_probability_count,fraction_on_1_over_300_grid,groups_with_any_zero_candidate,groups_with_all_zero_candidates
+169408,19133,89875,0.5305239421987156,295,0.0017413581412920288,34221,0.5548439270872686,15192,0

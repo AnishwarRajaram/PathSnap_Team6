@@ -1,18 +1,18 @@
-# Model Comparison Workflow
+# Model Comparison
 
-## 1. Assignment
+## 1. Models
 
-| Model | Family | Owner | File |
+| Model | Family | Module | Report |
 |---|---|---|---|
-| Logistic Regression | Linear and probabilistic | [Lead pair] | `models/logreg.py` |
-| HistGradientBoosting | Boosting | [Lead pair] | `models/hgb.py` |
-| Random Forest | Bagging ensemble | [Teammate 1] | `models/rf.py` |
-| Multilayer Perceptron | Neural network | [Teammate 2] | `models/mlp.py` |
-| Distance-weighted kNN | Instance-based | [Teammate 3] | `models/knn.py` |
+| Logistic Regression | Linear and probabilistic | `models/logreg.py` | n/a |
+| HistGradientBoosting | Boosting | `models/hgb.py` | n/a |
+| Random Forest | Bagging ensemble | `models/rf.py` | `docs/MODEL_REPORT_RF.md` |
+| Multilayer Perceptron | Neural network | `models/mlp.py` | `docs/MODEL_REPORT_MLP.md` |
+| Distance-weighted kNN | Instance-based | `models/knn.py` | `docs/MODEL_REPORT_KNN.md` |
 
 ## 2. Setup
 
-1. Clone the repository. Read this file and `docs/INPUT_CONTRACT.md` on `main`. Create or update your personal branch from the latest `main` and develop your model there. Finished results are merged back into `main` after review.
+1. Read this file and `docs/INPUT_CONTRACT.md`.
 2. Create the environment: `python3 -m venv .venv` and `.venv/bin/pip install -r requirements.txt`.
 3. Place the issued student folder outside version control and set `PATHSNAP_DATA` to its path.
 4. Build labels and features: `.venv/bin/python models/prepare_data.py`. The command takes about 10 seconds.
@@ -29,7 +29,7 @@
 
 ## 4. Fixed Rules
 
-4.1. `models/harness.py`, `results/models/folds.csv` and the feature list are shared. Changes need team agreement.
+4.1. `models/harness.py`, `results/models/folds.csv` and the feature list are fixed for every model.
 
 4.2. The primary metric is cross-validated macro F1. Ties within one fold standard deviation go to the lower log loss.
 

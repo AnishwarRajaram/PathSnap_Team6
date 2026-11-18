@@ -1,4 +1,4 @@
-"""Model 1: Logistic Regression (linear and probabilistic family). Owner: Team 6 lead pair."""
+"""Model 1: Logistic Regression (linear and probabilistic family)."""
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler

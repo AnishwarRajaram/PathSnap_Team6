@@ -1,40 +1,49 @@
 # PathSnap: Map-Matching and Route Reconstruction
 
-PathSnap matches noisy 1 Hz GPS observations to a road network and reconstructs the driven route. A classifier scores candidate road segments for each observation. An HMM with Viterbi decoding then selects a connected route through the road graph. A FastAPI service and an evaluator interface run the pipeline on two laptops.
+PathSnap matches noisy 1 Hz GPS observations to a road network and reconstructs the driven route. A classifier scores the candidate road arcs of each observation. A hidden Markov model with Viterbi decoding then selects a connected route through the road graph. A FastAPI service and an evaluator interface run the pipeline on two laptops.
 
 Team: [Team Name / Author Name]. Course: UE24CS352A Machine Learning.
 
 ## 1. Results
 
-| Stage | Training, grouped 5-fold CV | Student testing |
-|---|---|---|
-| Nearest arc only, Top-1 | 55.0% | n/a |
-| Logistic Regression, macro F1 / Top-1 | 0.908 / 86.9% | 0.911 / 86.7% |
-| Distance-weighted kNN, macro F1 / Top-1 | 0.915 / 86.2% | n/a |
-| HistGradientBoosting, macro F1 / Top-1 | 0.932 / 88.0% | 0.933 / 88.5% |
-| Random Forest, macro F1 / Top-1 | 0.934 / 88.2% | 0.932 / 88.2% |
-| HistGradientBoosting with HMM, Top-1 | 92.4% | 92.8% |
-| Route continuity before and after HMM | 73.6% to 90.0% | 73.4% to 90.3% |
+### 1.1. Classifier Comparison
 
-The model comparison covers five model families. Four are complete and the multilayer perceptron is outstanding. Random Forest leads under the selection rule because its macro F1 lies within one fold standard deviation of HistGradientBoosting and its log loss is lower. The HMM rows use HistGradientBoosting and are recomputed for the selected model. Results come from `results/` and are reproducible with the commands in section 4.
+Grouped five-fold cross-validation on the 80 training trips. Student-testing trips are scored once and play no part in selection.
+
+| Model | Family | CV macro F1 | CV log loss | CV Top-1 | Student-test macro F1 | Student-test Top-1 |
+|---|---|---|---|---|---|---|
+| Random Forest | Bagging ensemble | 0.9335 ± 0.0304 | 0.0720 | 88.2% | 0.9315 | 88.2% |
+| HistGradientBoosting | Boosting | 0.9316 ± 0.0305 | 0.0803 | 88.0% | 0.9329 | 88.5% |
+| Multilayer Perceptron | Neural network | 0.9280 ± 0.0316 | 0.0792 | 88.0% | 0.9252 | 87.3% |
+| Distance-weighted kNN | Instance-based | 0.9151 ± 0.0315 | 0.1480 | 86.2% | n/a | n/a |
+| Logistic Regression | Linear | 0.9080 ± 0.0354 | 0.1160 | 86.9% | 0.9106 | 86.7% |
+| Nearest arc only | Baseline | n/a | n/a | 55.0% | n/a | n/a |
+
+Random Forest is selected. HistGradientBoosting and the multilayer perceptron lie within one fold standard deviation of it, and the tie goes to the lowest log loss.
+
+### 1.2. Route Reconstruction
+
+| Configuration | Train OOF Top-1 | Train OOF continuity | Student-test Top-1 | Student-test continuity | Student-test route F1 |
+|---|---|---|---|---|---|
+| Random Forest only | 88.7% | 75.7% | 88.2% | 74.2% | 0.942 |
+| Random Forest with HMM | 92.4% | 89.4% | 92.2% | 89.8% | 0.975 |
+| Distance-only HMM | 89.0% | 89.7% | 89.7% | 89.4% | 0.968 |
+
+Continuity is measured before path filling. The drivable route returned by the decoder reaches 99.9% continuity. The deployed service reproduces the student-testing figures exactly.
 
 ## 2. Repository Layout
 
 | Path | Contents |
 |---|---|
-| `pathsnap/` | Shared library: data loading and projection, label alignment, candidate generation, features, HMM decoder |
+| `pathsnap/` | Shared library: data loading and projection, labels, candidates, features, HMM decoder, end-to-end prediction |
 | `eda/` | Exploratory analysis, steps 01 to 08 |
-| `models/` | Evaluation harness, one file per model, data preparation and model comparison |
-| `hmm/` | Route reconstruction experiments, decoder tuning and figures |
-| `tuning/` | Bayesian optimisation of the selected classifier |
+| `models/` | Evaluation harness, one module per model, data preparation and model comparison |
+| `hmm/` | Decoder tuning, evaluation and figures |
 | `api/` | FastAPI service, deployment model training and service check |
 | `ui/` | Evaluator interface, a static page for the second laptop |
-| `scripts/` | `reproduce_viva1.sh` reruns everything up to model selection |
+| `scripts/` | `reproduce.sh` reruns the analysis and model comparison and checks the reference metrics |
 | `results/` | Metrics, CSV summaries and figures |
-| `docs/` | Input contract, model report template and model reports |
-| `AGENTS.md` | Team rules for people and AI agents |
-
-The `main` branch is the integration branch. Each team member develops on a personal branch cut from `main`, and finished work is merged back after review.
+| `docs/` | Report, input contract, model report template and model reports |
 
 ## 3. Setup
 
@@ -48,26 +57,26 @@ export PATHSNAP_DATA="/path/to/Student folder"
 
 ## 4. Running the Pipeline
 
-### 4.1. Reproduce Everything up to Model Selection
+### 4.1. Analysis and Model Comparison
 
 ```bash
-bash scripts/reproduce_viva1.sh          # add --maps for the Folium maps
+bash scripts/reproduce.sh          # add --maps for the Folium maps
 ```
 
-The script runs EDA steps 1 to 6, trains every model through the harness, applies the selection rule and checks the reference metrics. It prints `REPRODUCED` on success. It takes about three minutes on a laptop.
+The script runs EDA steps 1 to 6, trains every model through the harness, applies the selection rule and checks the reference metrics. It prints `REPRODUCED` on success. Random Forest and the multilayer perceptron dominate the run time of about 90 minutes.
 
 ### 4.2. Individual Steps
 
 ```bash
 .venv/bin/python models/prepare_data.py          # labels and features, about 10 s
-.venv/bin/python models/run.py hgb               # one model through the harness
+.venv/bin/python models/run.py rf                # one model through the harness
 .venv/bin/python models/compare.py               # comparison table and selection
-.venv/bin/python hmm/tune.py --model hgb         # decoder tuning on training out-of-fold predictions
-.venv/bin/python hmm/final.py --model hgb        # classifier vs HMM comparison
-.venv/bin/python hmm/report.py                   # HMM figures
+.venv/bin/python hmm/tune.py --model rf          # decoder tuning on training out-of-fold predictions
+.venv/bin/python hmm/final.py --model rf         # classifier against classifier with HMM
+.venv/bin/python hmm/report.py --model rf        # HMM figures
 ```
 
-### 4.3. API and Interface
+### 4.3. Deployment
 
 Laptop 1 builds the deployment model and serves the evaluation trips. `train_final.py` uses the model selected in `results/models/comparison.csv` unless `--model` is given.
 
@@ -85,23 +94,19 @@ python3 -m http.server 8080 -d ui                # then open http://localhost:80
 
 The request and response formats are fixed in `docs/INPUT_CONTRACT.md`.
 
-### 4.4. Hyperparameter Tuning
-
-```bash
-.venv/bin/python tuning/tune_hgb.py --trials 60  # Optuna TPE on the fixed folds, about 80 min
-```
-
 ## 5. Method Summary
 
 | Step | Method |
 |---|---|
 | Projection | Local equirectangular projection to metres around each trip centre, within 0.18% of haversine |
 | Labels | Order-preserving dynamic-programming alignment of observations to reference route arcs |
-| Candidates | Arcs within 50 m, at most 16, with the 4 nearest as fallback |
+| Candidates | Arcs within 50 m, at most 16, with the 4 nearest within 500 m as fallback |
 | Features | 14 place-independent features on distance, position on arc, heading, motion, neighbouring observations and network shape |
-| Classifier | Binary: is this candidate the true arc. Selected by cross-validated macro F1 with trip-grouped folds, then tuned by Bayesian optimisation |
+| Classifier | Binary: is this candidate the true arc. Selected by cross-validated macro F1 with trip-grouped folds |
 | Decoder | HMM over candidate arcs. Emission from classifier probabilities. Transition from road distance against GPS distance on the directed graph. Viterbi with soft breaks |
+
+The full method and its evaluation are in `docs/REPORT.md`.
 
 ## 6. Data Rules
 
-Raw data, derived data, trained models and Folium maps are not committed. Evaluator-testing data plays no part in any modelling decision. Ground-truth routes stay on the server side and never reach the model or the interface. See `AGENTS.md` for the full rules.
+Raw data, derived data, trained models and Folium maps are not committed. Evaluator-testing data plays no part in any modelling decision. Reference routes stay on the server and never reach the model or the interface.
