@@ -98,7 +98,7 @@ PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to 
 
 ## 7. Input Contract
 
-7.1. The input contract is `docs/INPUT_CONTRACT.md`, version 1.0. It fixes the candidate generation rule, the 14-feature schema with units and types, the label rule, the classifier and decoder interfaces, the API request and response formats and the metric definitions.
+7.1. The input contract is `docs/INPUT_CONTRACT.md`, version 1.1. It fixes the candidate generation rule, the 14-feature schema with units and types, the label rule, the classifier and decoder interfaces, the API request and response formats and the metric definitions.
 
 7.2. Every stage conforms to the contract. A change to any field, unit or rule requires a new contract version committed to `main`.
 
@@ -111,5 +111,6 @@ PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to 
 | Repository and branches | Created |
 | Data received | Training 80 trips. Student-testing 10 trips. |
 | Exploratory analysis | Complete |
-| Input contract | Version 1.0 approved |
-| Model comparison | Not started |
+| Input contract | Version 1.1 approved |
+| Model comparison | Two of five models complete. Three assigned to teammates. |
+| HMM and Viterbi | Complete. Decoder tuned on training out-of-fold predictions. |
