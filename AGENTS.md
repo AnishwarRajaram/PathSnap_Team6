@@ -1,61 +1,88 @@
-# AGENTS.md — PathSnap Team 6
+# PathSnap Team 6: Agent Operating Context
 
-Running context for every human and AI agent working in this repo. Read it before touching anything. Update it when a decision changes.
+This document is the shared operating context for every team member and every AI agent working in this repository. Each contributor reads it before starting work. The team updates it when a decision changes.
 
-## Branches
+## 1. Branch Policy
 
-- `main` holds only this setup. Do not commit to it and do not merge into it.
-- `anishwar` is the working branch. All work goes here.
-- The team may cut a fresh, clean repo for the final presentation near the end. Until then, keep history honest. Do not rewrite or force-push.
+1.1. The `main` branch holds three artefacts: this document, the exploratory data analysis under `eda/` and the agreed input contract. No other work is committed to `main`.
 
-## The task (UE24CS352A hackathon)
+1.2. The `anishwar` branch is the working branch. All modelling code, experiments, results and report sources are committed there. The team does not merge `anishwar` into `main`.
 
-Map-match noisy 1 Hz GPS traces to a road network and rebuild the driven route.
+1.3. The team may create a separate repository for the final presentation. Until that decision is made, the history on `anishwar` remains unaltered. Contributors do not rewrite history or force-push.
 
-1. Generate candidate road segments (arcs) near each GPS point.
-2. Train at least 5 classifiers from different families to score "is this candidate the true arc?".
-3. Pick the best one on evidence. Tune it with Bayesian optimisation (group-aware CV, grouped by trip).
-4. Decode the sequence with an HMM and Viterbi. Classifier scores feed the emissions. Road connectivity and distance feed the transitions.
-5. Serve it with FastAPI on laptop 1. A UI on laptop 2 lists the 10 evaluator trips, sends a trip ID, and shows the route and the score.
-6. Write one PDF report. Include Folium maps.
+## 2. Problem Statement
 
-## Data
+PathSnap reconstructs vehicle routes by matching noisy 1 Hz GPS observations to a road network. The required pipeline has six stages.
 
-- Partitions: `train` (80 trips), `student_test` (10 trips), evaluator test (10 trips, held by organisers).
-- Each trip folder has 4 headerless, whitespace-separated files:
-  - `.track`: lon, lat, t (seconds)
-  - `.nodes`: lon, lat. The row index is the node ID.
-  - `.arcs`: from_node, to_node. The row index is the arc ID.
-  - `.route`: the arc IDs of the reference route, in order.
-- Coordinates are **lon first**. Do not use Euclidean distance in degrees. Use a projected CRS or haversine.
-- The reference route is not perfect ground truth. Note its limits in the report.
+| Stage | Description |
+|---|---|
+| 1. Candidate generation | Select candidate road segments (arcs) near each GPS observation. |
+| 2. Model comparison | Train at least five classifiers from different algorithm families to score each candidate. |
+| 3. Model selection and tuning | Select the best classifier on measured evidence. Tune it by Bayesian optimisation with trip-grouped cross-validation. |
+| 4. Sequence decoding | Decode the route with an HMM and the Viterbi algorithm. Classifier scores define emissions. Road connectivity and distance define transitions. |
+| 5. Deployment | Laptop 1 runs a FastAPI service. Laptop 2 runs a user interface that lists the ten evaluator trips, sends a trip identifier and displays the predicted route and its score. |
+| 6. Reporting | The team submits one PDF report with Folium maps and verifiable results. |
 
-## Hard rules
+## 3. Dataset Description
 
-- Raw data is never committed. Read the data root from the `PATHSNAP_DATA` env variable. Never hardcode a local path.
-- Never commit derived data, secrets or API keys.
-- AI agents may print **aggregates only** from the data (counts, stats, distributions). No row-level dumps in logs, chat or commits.
-- No evaluator-test leakage. Fit preprocessing on train only. Tune decoder parameters on train and student_test only.
-- No hardcoded predictions. Ground truth stays on the server and never reaches the model or the UI.
-- Every metric, graph and map in the report must come from code in this repo.
-- No licence file, by team decision.
-- Commit messages carry no AI attribution lines.
-- Every team member must be able to explain any code they commit.
+3.1. The dataset has three partitions. The training partition holds 80 trips. The student-testing partition holds 10 trips. The organisers hold the 10 evaluator-testing trips.
 
-## Required repo layout (target)
+3.2. Each trip directory contains four headerless whitespace-separated files.
 
-```
-eda/          dataset exploration, Folium maps
-features/     candidate generation and feature engineering
-models/       training scripts for each model, plus comparison
-tuning/       Bayesian optimisation configs and trial logs
-hmm/          HMM and Viterbi decoder
-api/          FastAPI backend
-ui/           evaluator UI
-results/      CSVs, logs, plots (small files only)
-report/       report sources
-```
+| File | Columns | Notes |
+|---|---|---|
+| `.track` | longitude, latitude, timestamp (s) | Nominal sampling rate is 1 Hz. |
+| `.nodes` | longitude, latitude | The row index is the node identifier. |
+| `.arcs` | from_node, to_node | The row index is the arc identifier. |
+| `.route` | arc identifier | Ordered reference route. |
 
-## Status log
+3.3. Coordinates are stored with longitude first. Distance calculations use a projected coordinate system or the haversine formula. Euclidean distance in degrees is not used.
 
-- Repo set up. Data received: train 80, student_test 10.
+3.4. The reference route is not verified ground truth. The report states its limitations.
+
+## 4. Mandatory Rules
+
+4.1. Raw data is never committed. Code reads the data root from the `PATHSNAP_DATA` environment variable. Code never contains a local path.
+
+4.2. Derived data, credentials and API keys are never committed.
+
+4.3. AI agents report aggregates only from the dataset. Row-level values do not appear in logs, chat transcripts or commits.
+
+4.4. Evaluator-testing data does not influence any modelling decision. Preprocessing is fitted on training data only. Decoder parameters are tuned on training and student-testing data only.
+
+4.5. Predictions are never hardcoded. Ground-truth labels remain on the server and never reach the model or the user interface.
+
+4.6. Every metric, graph and map in the report is produced by code in this repository.
+
+4.7. The repository carries no licence file by team decision.
+
+4.8. Commit messages carry no AI attribution lines.
+
+4.9. Each contributor must be able to explain any code they commit.
+
+## 5. Repository Layout
+
+| Directory | Contents |
+|---|---|
+| `eda/` | Dataset exploration scripts and Folium maps |
+| `features/` | Candidate generation and feature engineering |
+| `models/` | Training script for each model and the comparison harness |
+| `tuning/` | Bayesian optimisation configuration and trial logs |
+| `hmm/` | HMM and Viterbi decoder |
+| `api/` | FastAPI backend |
+| `ui/` | Evaluator interface |
+| `results/` | Small CSV files, logs and plots |
+| `report/` | Report sources |
+
+## 6. Input Contract
+
+The team defines the input contract after exploratory analysis, dimensionality analysis and feature selection are complete. The contract specifies the candidate generation rule, the feature schema with units and types, and the request and response formats of the API. The agreed contract is committed to `main` alongside this document.
+
+## 7. Status Record
+
+| Item | Status |
+|---|---|
+| Repository and branches | Created |
+| Data received | Training 80 trips. Student-testing 10 trips. |
+| Exploratory analysis | In progress |
+| Input contract | Not started |
